@@ -1,0 +1,16 @@
+---
+description: Express API conventions
+globs:
+  - "server/**/*.js"
+alwaysApply: false
+---
+- Structure: routes/ define endpoints only, controllers/ handle req/res,
+  services/ hold business logic, db/ holds queries — don't mix these layers.
+- All monetary values stored as integers (paise/cents), never floats.
+- Every write endpoint that touches maintenance dues, expenses, or payments
+  must be wrapped in a transaction.
+- Auth middleware must run before role-check middleware, on every protected
+  route — no route should skip both "just this once."
+- Validate all input (use zod or similar) before it reaches a service layer.
+- Log admin/treasurer actions that touch money or role changes (basic audit
+  trail) — don't silently allow edits to financial records.

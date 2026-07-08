@@ -1,0 +1,12 @@
+---
+description: React conventions
+globs:
+  - "client/**/*.jsx"
+alwaysApply: false
+---
+- Functional components + hooks only.
+- Role-based UI: don't just hide buttons for unauthorized roles — the
+  backend must also reject the action. UI hiding is convenience, not security.
+- Forms touching money (maintenance payment, expense entry) must show a
+  confirmation step before submit.
+- Keep API calls in a dedicated client/src/api/ layer, not inline in components.

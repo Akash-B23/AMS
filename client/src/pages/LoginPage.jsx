@@ -1,0 +1,68 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { ApiError } from "../api/client";
+import { useAuth } from "../context/AuthContext";
+
+export default function LoginPage() {
+  const { login, homePathForRole } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setSubmitting(true);
+    try {
+      const loggedIn = await login(email, password);
+      navigate(homePathForRole(loggedIn.role), { replace: true });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Login failed. Please try again.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <main className="auth-page">
+      <h1>AMS Login</h1>
+      <p>Apartment Management System</p>
+      <form onSubmit={handleSubmit} className="auth-form">
+        <label>
+          Email
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+          />
+        </label>
+        {error && <p className="error">{error}</p>}
+        <button type="submit" disabled={submitting}>
+          {submitting ? "Signing in..." : "Sign in"}
+        </button>
+      </form>
+      <p className="hint">
+        Dev seed users: resident@ams.local, manager@ams.local, admin@ams.local
+        (password: password123)
+      </p>
+    </main>
+  );
+}

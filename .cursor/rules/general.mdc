@@ -1,0 +1,16 @@
+---
+description: Core project context for the apartment management system
+alwaysApply: true
+---
+- This is an apartment/society management system. Real residents will use this
+  for logins, complaints, and maintenance payments — treat financial and
+  personal data (payment refs, contact info, vehicle info) as sensitive.
+- Stack: React (client/), Express (server/), Neon Postgres (server/src/db).
+- Roles: resident, tenant, manager, admin, association_staff, treasurer.
+  Every protected route must check role, not just "logged in."
+- Never invent npm packages. Before importing something new, verify it's
+  installed (check package.json / run npm list) rather than assuming.
+- No placeholder code. If a function can't be fully implemented, say why
+  and stop — don't leave "// TODO" in committed code.
+- Before any multi-file change, propose a short plan first (Plan Mode) —
+  don't jump straight to editing across the codebase.

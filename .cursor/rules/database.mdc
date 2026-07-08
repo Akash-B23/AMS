@@ -1,0 +1,12 @@
+---
+description: Postgres/Neon schema and query conventions — load when working on database schema, migrations, or queries
+alwaysApply: false
+---
+- Core entities: blocks, flats, residents (owner/tenant), vehicles, invoices,
+  payments, complaints, expenses, vendors, quotations, maintenance_activities.
+- Every table needs created_at/updated_at. Soft-delete (is_active flag)
+  for residents/flats instead of hard delete — you need history for reports.
+- Use migrations (not manual schema edits) — this is Neon, branch a dev
+  database for testing migrations before applying to the main branch.
+- Foreign keys enforced at the DB level, not just app-level checks.
+- Write raw SQL or use an ORM (Prisma/Drizzle) consistently — don't mix both.
