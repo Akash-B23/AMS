@@ -21,6 +21,8 @@ export function authenticate(req, _res, next) {
     id: payload.sub,
     email: payload.email,
     role: payload.role,
+    societyId: payload.societyId,
+    societySlug: payload.societySlug,
   };
   next();
 }

@@ -1,7 +1,12 @@
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export function ProtectedRoute({ allowedRoles }) {
+function societyLoginPath(societySlug) {
+  return societySlug ? `/${societySlug}/login` : "/";
+}
+
+export function ProtectedRoute({ allowedRoles, requireSociety = true }) {
+  const { societySlug } = useParams();
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -9,7 +14,19 @@ export function ProtectedRoute({ allowedRoles }) {
   }
 
   if (!user) {
-    return <Navigate to="/login" replace />;
+    if (societySlug) {
+      return <Navigate to={societyLoginPath(societySlug)} replace />;
+    }
+    return <Navigate to="/platform/login" replace />;
+  }
+
+  if (
+    requireSociety &&
+    societySlug &&
+    user.societySlug &&
+    user.societySlug !== societySlug
+  ) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
@@ -19,7 +36,8 @@ export function ProtectedRoute({ allowedRoles }) {
   return <Outlet />;
 }
 
-export function GuestRoute() {
+export function GuestRoute({ platform = false }) {
+  const { societySlug } = useParams();
   const { user, loading, homePathForRole } = useAuth();
 
   if (loading) {
@@ -27,7 +45,30 @@ export function GuestRoute() {
   }
 
   if (user) {
-    return <Navigate to={homePathForRole(user.role)} replace />;
+    return (
+      <Navigate
+        to={homePathForRole(user.role, user.societySlug ?? societySlug)}
+        replace
+      />
+    );
+  }
+
+  return <Outlet />;
+}
+
+export function PlatformProtectedRoute({ allowedRoles }) {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (!user) {
+    return <Navigate to="/platform/login" replace />;
+  }
+
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return <Outlet />;

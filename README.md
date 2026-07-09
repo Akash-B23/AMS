@@ -1,13 +1,15 @@
 # AMS — Apartment Management System
 
-AMS is a web application for apartment societies and housing associations. It gives residents a single place to stay connected with their building, and gives society staff the tools to manage day-to-day operations — from resident records to maintenance and finances.
+AMS is a multi-tenant web application for apartment societies and housing associations. Each society is an isolated tenant — residents and staff log in through their society's URL, and data is enforced at the database level with Postgres Row-Level Security.
 
 ## What it does
 
+- **Multi-tenant** — Each apartment society is a separate tenant with its own blocks, flats, residents, and users
 - **Resident portal** — Owners and tenants log in to access their apartment dashboard
-- **Staff portal** — Managers, admins, association staff, and treasurers manage society operations from a separate dashboard
-- **Building structure** — Organizes the society into blocks, flats, and residents
-- **Secure access** — Role-based authentication so each user only sees what they're allowed to
+- **Staff portal** — Managers, admins, association staff, and treasurers manage society operations
+- **Platform admin** — Platform superadmin for cross-tenant support (separate login)
+- **Building structure** — Organizes each society into blocks, flats, and residents
+- **Secure access** — Role-based authentication with RLS-enforced tenant isolation
 - **Complaints & maintenance** — Track issues and maintenance requests (in development)
 - **Payments & dues** — Handle maintenance billing and payment records (in development)
 - **Notices** — Share announcements with residents (in development)
@@ -19,17 +21,18 @@ AMS is a web application for apartment societies and housing associations. It gi
 | Resident | Flat owner with full resident access |
 | Tenant | Rented flat occupant |
 | Manager | Day-to-day society operations |
-| Admin | Full administrative control |
+| Admin | Society administrator (single-society only) |
 | Association staff | General staff access |
 | Treasurer | Financial records and payments |
+| Platform superadmin | Cross-tenant platform support |
 
-Residents and tenants use the **resident portal**. All other roles use the **staff portal**.
+Residents and tenants use the **resident portal**. Society staff use the **staff portal**. Platform superadmin uses a separate **platform login**.
 
 ## Tech stack
 
 - **Frontend** — React, Vite, React Router
 - **Backend** — Node.js, Express
-- **Database** — PostgreSQL (Neon)
+- **Database** — PostgreSQL (Neon) with Row-Level Security
 - **Auth** — JWT sessions via HTTP-only cookies, bcrypt password hashing
 
 ## Project structure
@@ -85,16 +88,18 @@ The frontend runs at [http://localhost:5173](http://localhost:5173) and the API 
 
 ## Demo logins
 
-After seeding, you can sign in with any of these (password: `password123`):
+After seeding, sign in at a society URL (password: `password123`):
 
-| Email | Role |
-| ----- | ---- |
-| `resident@ams.local` | Resident |
-| `tenant@ams.local` | Tenant |
-| `manager@ams.local` | Manager |
-| `admin@ams.local` | Admin |
-| `staff@ams.local` | Association staff |
-| `treasurer@ams.local` | Treasurer |
+| URL | Email | Role |
+| --- | ----- | ---- |
+| `/greenview-apartments/login` | `resident@ams.local` | Resident |
+| `/greenview-apartments/login` | `tenant@ams.local` | Tenant |
+| `/greenview-apartments/login` | `manager@ams.local` | Manager |
+| `/greenview-apartments/login` | `admin@ams.local` | Society admin |
+| `/sunrise-heights/login` | `resident@ams.local` | Resident (Sunrise tenant) |
+| `/platform/login` | `superadmin@ams.local` | Platform superadmin |
+
+The same email can exist in multiple societies — login always requires the society slug in the URL.
 
 ## Available scripts
 
@@ -107,7 +112,8 @@ After seeding, you can sign in with any of these (password: `password123`):
 | `npm run db:migrate -w server` | Run database migrations |
 | `npm run db:seed -w server` | Load demo data |
 | `npm run db:reset -w server` | Reset database |
-| `npm run test` | Run server tests |
+| `npm run test` | Run all server tests |
+| `npm run test:phase-1` | Run multi-tenant isolation tests |
 
 ## License
 

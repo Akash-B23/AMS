@@ -1,0 +1,46 @@
+---
+description: Multi-tenant data isolation — this app serves many apartments/societies, not one
+alwaysApply: true
+---
+- This is a multi-tenant SaaS. Every apartment/society is a separate tenant.
+  A "society" row is the tenant boundary — every other table (flats,
+  residents, invoices, complaints, expenses, vendors, quotations) must have
+  a society_id column, no exceptions.
+- Never write a query against a tenant-scoped table without filtering by
+  society_id. If you're about to write one "just for this internal script,"
+  stop — there's no such thing as an internal script that skips this.
+- Enforce tenant isolation at the database level with Postgres Row-Level
+  Security (RLS) policies, not just app-layer WHERE clauses. App-layer
+  filtering is a second line of defense, not the primary one — a single
+  missed WHERE clause should not be able to leak one society's data to
+  another.
+- Two distinct admin tiers, don't conflate them:
+  - platform superadmin (you) — manages societies themselves, can see
+    cross-tenant data for support/billing purposes only.
+  - society admin — manages only their own society, has zero visibility
+    into other societies, even that they exist.
+- Every society gets a unique slug (e.g. greenview-apartments) used for
+  routing/access — plan the column now even if subdomain routing isn't
+  built until later.
+
+  ---
+description: Auth and financial data handling — load for anything touching login, roles, or payments
+alwaysApply: false
+---
+- Passwords: bcrypt/argon2 hashed, never stored or logged in plaintext.
+- JWT or session-based auth — either is fine, but be consistent, and store
+  role in the token/session, re-verify role server-side on every request.
+- Payment gateway is Razorpay, using **Route / Linked Accounts** — each
+  society has its own Linked Account tied to its own bank details. Maintenance
+  payments must be transferred to the correct society's Linked Account, never
+  pooled into one central account. Get the Linked Account id from the
+  society's record before creating any payment order.
+- Never trust client-side "payment success" callbacks alone — an invoice
+  is only marked paid after Razorpay's webhook confirms it server-side,
+  with signature verification on every webhook payload.
+- Razorpay keys (key_id/key_secret) live in server-side env vars only —
+  never in client/ code, never committed to git.
+- Webhook handler must be idempotent (Razorpay can retry/resend the same
+  event) — check payment/order id before applying an update twice.
+- Never expose other residents' contact/vehicle details across flats unless
+  the requester is manager/admin/staff.

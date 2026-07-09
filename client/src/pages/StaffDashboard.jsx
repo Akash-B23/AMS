@@ -9,6 +9,8 @@ export default function StaffDashboard() {
         <div>
           <h1>Staff Portal</h1>
           <p>
+            {user?.societyName && <strong>{user.societyName}</strong>}
+            {" — "}
             Signed in as {user?.email} ({user?.role})
           </p>
         </div>

@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
 import { useAuth } from "../context/AuthContext";
 
-export default function LoginPage() {
-  const { societySlug } = useParams();
-  const { login, homePathForRole } = useAuth();
+export default function PlatformLoginPage() {
+  const { platformLogin, homePathForRole } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,8 +16,8 @@ export default function LoginPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const loggedIn = await login(societySlug, email, password);
-      navigate(homePathForRole(loggedIn.role, societySlug), { replace: true });
+      const loggedIn = await platformLogin(email, password);
+      navigate(homePathForRole(loggedIn.role), { replace: true });
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -32,12 +31,8 @@ export default function LoginPage() {
 
   return (
     <main className="auth-page">
-      <h1>AMS Login</h1>
-      <p>
-        {societySlug
-          ? `Sign in to ${societySlug.replace(/-/g, " ")}`
-          : "Apartment Management System"}
-      </p>
+      <h1>Platform Admin</h1>
+      <p>Sign in as platform superadmin</p>
       <form onSubmit={handleSubmit} className="auth-form">
         <label>
           Email
@@ -64,11 +59,9 @@ export default function LoginPage() {
           {submitting ? "Signing in..." : "Sign in"}
         </button>
       </form>
+      <p className="hint">Dev: superadmin@ams.local / password123</p>
       <p className="hint">
-        Dev: resident@ams.local / password123
-      </p>
-      <p className="hint">
-        <Link to="/platform/login">Platform admin login</Link>
+        <Link to="/greenview-apartments/login">Society login</Link>
       </p>
     </main>
   );

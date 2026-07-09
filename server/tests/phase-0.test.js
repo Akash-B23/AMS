@@ -19,6 +19,7 @@ import { createApp } from "../src/app.js";
 import { RESIDENT_ROLES, STAFF_ROLES } from "../src/types/roles.js";
 
 const SEED_PASSWORD = "password123";
+const SOCIETY_SLUG = "greenview-apartments";
 
 describe("Phase 0 — Foundations", () => {
   /** @type {import('express').Express} */
@@ -49,7 +50,11 @@ describe("Phase 0 — Foundations", () => {
   test("POST /api/auth/login rejects invalid credentials", async () => {
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ email: "resident@ams.local", password: "wrong-password" });
+      .send({
+        societySlug: SOCIETY_SLUG,
+        email: "resident@ams.local",
+        password: "wrong-password",
+      });
     assert.equal(res.status, 401);
     assert.equal(res.body.error, "Invalid email or password");
   });
@@ -57,33 +62,43 @@ describe("Phase 0 — Foundations", () => {
   test("POST /api/auth/login rejects invalid email format", async () => {
     const res = await request(app)
       .post("/api/auth/login")
-      .send({ email: "not-an-email", password: "password123" });
+      .send({
+        societySlug: SOCIETY_SLUG,
+        email: "not-an-email",
+        password: "password123",
+      });
     assert.equal(res.status, 400);
   });
 
   test("resident login sets cookie and /me returns user", async () => {
     const agent = request.agent(app);
 
-    const loginRes = await agent
-      .post("/api/auth/login")
-      .send({ email: "resident@ams.local", password: SEED_PASSWORD });
+    const loginRes = await agent.post("/api/auth/login").send({
+      societySlug: SOCIETY_SLUG,
+      email: "resident@ams.local",
+      password: SEED_PASSWORD,
+    });
     assert.equal(loginRes.status, 200);
     assert.equal(loginRes.body.user.email, "resident@ams.local");
     assert.equal(loginRes.body.user.role, "resident");
+    assert.equal(loginRes.body.user.societySlug, SOCIETY_SLUG);
     assert.ok(loginRes.body.user.id);
 
     const meRes = await agent.get("/api/auth/me");
     assert.equal(meRes.status, 200);
     assert.equal(meRes.body.user.email, "resident@ams.local");
     assert.equal(meRes.body.user.role, "resident");
+    assert.equal(meRes.body.user.societySlug, SOCIETY_SLUG);
   });
 
   test("manager login returns staff role", async () => {
     const agent = request.agent(app);
 
-    const loginRes = await agent
-      .post("/api/auth/login")
-      .send({ email: "manager@ams.local", password: SEED_PASSWORD });
+    const loginRes = await agent.post("/api/auth/login").send({
+      societySlug: SOCIETY_SLUG,
+      email: "manager@ams.local",
+      password: SEED_PASSWORD,
+    });
     assert.equal(loginRes.status, 200);
     assert.equal(loginRes.body.user.role, "manager");
     assert.ok(STAFF_ROLES.includes(loginRes.body.user.role));
@@ -92,9 +107,11 @@ describe("Phase 0 — Foundations", () => {
   test("tenant login returns resident role group", async () => {
     const agent = request.agent(app);
 
-    const loginRes = await agent
-      .post("/api/auth/login")
-      .send({ email: "tenant@ams.local", password: SEED_PASSWORD });
+    const loginRes = await agent.post("/api/auth/login").send({
+      societySlug: SOCIETY_SLUG,
+      email: "tenant@ams.local",
+      password: SEED_PASSWORD,
+    });
     assert.equal(loginRes.status, 200);
     assert.ok(RESIDENT_ROLES.includes(loginRes.body.user.role));
   });
@@ -102,9 +119,11 @@ describe("Phase 0 — Foundations", () => {
   test("logout clears session", async () => {
     const agent = request.agent(app);
 
-    await agent
-      .post("/api/auth/login")
-      .send({ email: "admin@ams.local", password: SEED_PASSWORD });
+    await agent.post("/api/auth/login").send({
+      societySlug: SOCIETY_SLUG,
+      email: "admin@ams.local",
+      password: SEED_PASSWORD,
+    });
 
     const logoutRes = await agent.post("/api/auth/logout");
     assert.equal(logoutRes.status, 200);
@@ -126,9 +145,11 @@ describe("Phase 0 — Foundations", () => {
 
     for (const email of emails) {
       const agent = request.agent(app);
-      const res = await agent
-        .post("/api/auth/login")
-        .send({ email, password: SEED_PASSWORD });
+      const res = await agent.post("/api/auth/login").send({
+        societySlug: SOCIETY_SLUG,
+        email,
+        password: SEED_PASSWORD,
+      });
       assert.equal(res.status, 200, `login failed for ${email}`);
       assert.equal(res.body.user.email, email);
     }

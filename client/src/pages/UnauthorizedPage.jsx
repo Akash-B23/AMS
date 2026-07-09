@@ -9,7 +9,9 @@ export default function UnauthorizedPage() {
       <h1>Access denied</h1>
       <p>Your role ({user?.role}) cannot view this page.</p>
       {user && (
-        <Link to={homePathForRole(user.role)}>Go to your dashboard</Link>
+        <Link to={homePathForRole(user.role, user.societySlug)}>
+          Go to your dashboard
+        </Link>
       )}
     </main>
   );

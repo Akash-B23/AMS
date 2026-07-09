@@ -1,16 +1,14 @@
 import { useAuth } from "../context/AuthContext";
 
-export default function ResidentDashboard() {
+export default function PlatformDashboard() {
   const { user, logout } = useAuth();
 
   return (
     <main className="dashboard">
       <header className="dashboard-header">
         <div>
-          <h1>Resident Portal</h1>
+          <h1>Platform Admin</h1>
           <p>
-            {user?.societyName && <strong>{user.societyName}</strong>}
-            {" — "}
             Signed in as {user?.email} ({user?.role})
           </p>
         </div>
@@ -20,8 +18,8 @@ export default function ResidentDashboard() {
       </header>
       <section>
         <p>
-          Welcome to the apartment management portal. Complaints, maintenance
-          payments, and notices will appear here in later phases.
+          Platform superadmin portal. Society management and cross-tenant
+          support tools will be added in later phases.
         </p>
       </section>
     </main>

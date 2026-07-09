@@ -16,6 +16,7 @@ const STAFF_ROLES = [
   "association_staff",
   "treasurer",
 ];
+const PLATFORM_ROLES = ["platform_superadmin"];
 
 const AuthContext = createContext(null);
 
@@ -23,14 +24,17 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const homePathForRole = useCallback((role) => {
+  const homePathForRole = useCallback((role, societySlug) => {
+    if (PLATFORM_ROLES.includes(role)) {
+      return "/platform";
+    }
     if (RESIDENT_ROLES.includes(role)) {
-      return "/resident";
+      return `/${societySlug}/resident`;
     }
     if (STAFF_ROLES.includes(role)) {
-      return "/staff";
+      return `/${societySlug}/staff`;
     }
-    return "/login";
+    return "/";
   }, []);
 
   useEffect(() => {
@@ -52,8 +56,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const login = useCallback(async (email, password) => {
-    const { user: loggedIn } = await authApi.login(email, password);
+  const login = useCallback(async (societySlug, email, password) => {
+    const { user: loggedIn } = await authApi.login(societySlug, email, password);
+    setUser(loggedIn);
+    return loggedIn;
+  }, []);
+
+  const platformLogin = useCallback(async (email, password) => {
+    const { user: loggedIn } = await authApi.platformLogin(email, password);
     setUser(loggedIn);
     return loggedIn;
   }, []);
@@ -68,10 +78,11 @@ export function AuthProvider({ children }) {
       user,
       loading,
       login,
+      platformLogin,
       logout,
       homePathForRole,
     }),
-    [user, loading, login, logout, homePathForRole],
+    [user, loading, login, platformLogin, logout, homePathForRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -85,4 +96,4 @@ export function useAuth() {
   return ctx;
 }
 
-export { RESIDENT_ROLES, STAFF_ROLES };
+export { RESIDENT_ROLES, STAFF_ROLES, PLATFORM_ROLES };

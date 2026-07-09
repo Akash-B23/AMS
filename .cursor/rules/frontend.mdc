@@ -2,6 +2,7 @@
 description: React conventions
 globs:
   - "client/**/*.jsx"
+  
 alwaysApply: false
 ---
 - Functional components + hooks only.
