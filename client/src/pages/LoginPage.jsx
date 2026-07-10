@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "../api/client";
+import AuthLayout, { AuthFooterLink, AuthFooterText } from "../components/layout/AuthLayout";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
+import Input from "../components/ui/Input";
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
@@ -18,7 +23,10 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const loggedIn = await login(societySlug, email, password);
-      navigate(homePathForRole(loggedIn.role, societySlug), { replace: true });
+      navigate(
+        homePathForRole(loggedIn.role, societySlug, loggedIn.setupComplete),
+        { replace: true },
+      );
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -30,46 +38,51 @@ export default function LoginPage() {
     }
   }
 
+  const societyLabel = societySlug
+    ? societySlug.replace(/-/g, " ")
+    : "your society";
+
   return (
-    <main className="auth-page">
-      <h1>AMS Login</h1>
-      <p>
-        {societySlug
-          ? `Sign in to ${societySlug.replace(/-/g, " ")}`
-          : "Apartment Management System"}
-      </p>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <label>
-          Email
-          <input
+    <AuthLayout
+      title="Sign in"
+      subtitle={`Access ${societyLabel} on AMS`}
+      footer={
+        <>
+          <AuthFooterText>Dev: resident@ams.local / password123</AuthFooterText>
+          <p>
+            <AuthFooterLink to="/platform/login">Platform admin</AuthFooterLink>
+            {" · "}
+            <AuthFooterLink to="/signup">Create your society</AuthFooterLink>
+          </p>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <FormField label="Email" htmlFor="email">
+          <Input
+            id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
           />
-        </label>
-        <label>
-          Password
-          <input
+        </FormField>
+        <FormField label="Password" htmlFor="password">
+          <Input
+            id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
           />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        </FormField>
+        {error && <Alert variant="error">{error}</Alert>}
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? "Signing in..." : "Sign in"}
-        </button>
+        </Button>
       </form>
-      <p className="hint">
-        Dev: resident@ams.local / password123
-      </p>
-      <p className="hint">
-        <Link to="/platform/login">Platform admin login</Link>
-      </p>
-    </main>
+    </AuthLayout>
   );
 }

@@ -7,6 +7,7 @@ import {
   useState,
 } from "react";
 import * as authApi from "../api/auth";
+import * as onboardingApi from "../api/onboarding";
 import { ApiError } from "../api/client";
 
 const RESIDENT_ROLES = ["resident", "tenant"];
@@ -24,7 +25,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const homePathForRole = useCallback((role, societySlug) => {
+  const homePathForRole = useCallback((role, societySlug, setupComplete = true) => {
     if (PLATFORM_ROLES.includes(role)) {
       return "/platform";
     }
@@ -32,6 +33,9 @@ export function AuthProvider({ children }) {
       return `/${societySlug}/resident`;
     }
     if (STAFF_ROLES.includes(role)) {
+      if (role === "admin" && setupComplete === false) {
+        return `/${societySlug}/setup`;
+      }
       return `/${societySlug}/staff`;
     }
     return "/";
@@ -68,6 +72,12 @@ export function AuthProvider({ children }) {
     return loggedIn;
   }, []);
 
+  const signup = useCallback(async (data) => {
+    const { user: registered } = await onboardingApi.signup(data);
+    setUser(registered);
+    return registered;
+  }, []);
+
   const logout = useCallback(async () => {
     await authApi.logout();
     setUser(null);
@@ -79,10 +89,11 @@ export function AuthProvider({ children }) {
       loading,
       login,
       platformLogin,
+      signup,
       logout,
       homePathForRole,
     }),
-    [user, loading, login, platformLogin, logout, homePathForRole],
+    [user, loading, login, platformLogin, signup, logout, homePathForRole],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

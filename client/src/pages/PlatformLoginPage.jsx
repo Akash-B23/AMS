@@ -1,6 +1,11 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ApiError } from "../api/client";
+import AuthLayout, { AuthFooterLink, AuthFooterText } from "../components/layout/AuthLayout";
+import Alert from "../components/ui/Alert";
+import Button from "../components/ui/Button";
+import FormField from "../components/ui/FormField";
+import Input from "../components/ui/Input";
 import { useAuth } from "../context/AuthContext";
 
 export default function PlatformLoginPage() {
@@ -30,39 +35,44 @@ export default function PlatformLoginPage() {
   }
 
   return (
-    <main className="auth-page">
-      <h1>Platform Admin</h1>
-      <p>Sign in as platform superadmin</p>
-      <form onSubmit={handleSubmit} className="auth-form">
-        <label>
-          Email
-          <input
+    <AuthLayout
+      title="Platform admin"
+      subtitle="Sign in as platform superadmin"
+      footer={
+        <>
+          <AuthFooterText>Dev: superadmin@ams.local / password123</AuthFooterText>
+          <p>
+            <AuthFooterLink to="/greenview-apartments/login">Society login</AuthFooterLink>
+          </p>
+        </>
+      }
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <FormField label="Email" htmlFor="platform-email">
+          <Input
+            id="platform-email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="email"
           />
-        </label>
-        <label>
-          Password
-          <input
+        </FormField>
+        <FormField label="Password" htmlFor="platform-password">
+          <Input
+            id="platform-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
           />
-        </label>
-        {error && <p className="error">{error}</p>}
-        <button type="submit" disabled={submitting}>
+        </FormField>
+        {error && <Alert variant="error">{error}</Alert>}
+        <Button type="submit" disabled={submitting} className="w-full">
           {submitting ? "Signing in..." : "Sign in"}
-        </button>
+        </Button>
       </form>
-      <p className="hint">Dev: superadmin@ams.local / password123</p>
-      <p className="hint">
-        <Link to="/greenview-apartments/login">Society login</Link>
-      </p>
-    </main>
+    </AuthLayout>
   );
 }

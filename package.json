@@ -13,7 +13,8 @@
     "build:client": "npm run build -w client",
     "test": "npm run test -w server",
     "test:phase-0": "npm run test:phase-0 -w server",
-    "test:phase-1": "npm run test:phase-1 -w server"
+    "test:phase-1": "npm run test:phase-1 -w server",
+    "test:phase-2": "npm run test:phase-2 -w server"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

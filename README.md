@@ -114,6 +114,7 @@ The same email can exist in multiple societies — login always requires the soc
 | `npm run db:reset -w server` | Reset database |
 | `npm run test` | Run all server tests |
 | `npm run test:phase-1` | Run multi-tenant isolation tests |
+| `npm run test:phase-2` | Run master data & profile tests |
 
 ## License
 

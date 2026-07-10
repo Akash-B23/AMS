@@ -3,12 +3,19 @@ import {
   GuestRoute,
   PlatformProtectedRoute,
   ProtectedRoute,
+  SetupRoute,
+  StaffRoute,
 } from "./components/ProtectedRoute";
 import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
+import LandingPage from "./pages/LandingPage";
+import MasterDataPage from "./pages/MasterDataPage";
 import PlatformDashboard from "./pages/PlatformDashboard";
 import PlatformLoginPage from "./pages/PlatformLoginPage";
 import ResidentDashboard from "./pages/ResidentDashboard";
+import ResidentProfilePage from "./pages/ResidentProfilePage";
+import SignupPage from "./pages/SignupPage";
+import SetupWizardPage from "./pages/SetupWizardPage";
 import StaffDashboard from "./pages/StaffDashboard";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
@@ -17,16 +24,14 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route
-            path="/"
-            element={<Navigate to="/greenview-apartments/login" replace />}
-          />
+          <Route path="/" element={<LandingPage />} />
 
           <Route element={<GuestRoute platform />}>
             <Route path="/platform/login" element={<PlatformLoginPage />} />
           </Route>
 
           <Route element={<GuestRoute />}>
+            <Route path="/signup" element={<SignupPage />} />
             <Route path="/:societySlug/login" element={<LoginPage />} />
           </Route>
 
@@ -36,21 +41,16 @@ export default function App() {
             }
           >
             <Route path="/:societySlug/resident" element={<ResidentDashboard />} />
+            <Route path="/:societySlug/resident/profile" element={<ResidentProfilePage />} />
           </Route>
 
-          <Route
-            element={
-              <ProtectedRoute
-                allowedRoles={[
-                  "manager",
-                  "admin",
-                  "association_staff",
-                  "treasurer",
-                ]}
-              />
-            }
-          >
+          <Route element={<SetupRoute />}>
+            <Route path="/:societySlug/setup" element={<SetupWizardPage />} />
+          </Route>
+
+          <Route element={<StaffRoute />}>
             <Route path="/:societySlug/staff" element={<StaffDashboard />} />
+            <Route path="/:societySlug/staff/master-data" element={<MasterDataPage />} />
           </Route>
 
           <Route
@@ -65,10 +65,7 @@ export default function App() {
             <Route path="/unauthorized" element={<UnauthorizedPage />} />
           </Route>
 
-          <Route
-            path="*"
-            element={<Navigate to="/greenview-apartments/login" replace />}
-          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

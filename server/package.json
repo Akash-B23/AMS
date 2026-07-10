@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "test": "node --test tests/phase-0.test.js tests/phase-1.test.js",
+    "test": "node --test tests/phase-0.test.js tests/phase-1.test.js tests/phase-0.5.test.js tests/phase-2-master-data.test.js",
     "test:phase-0": "node --test tests/phase-0.test.js",
     "test:phase-1": "node --test tests/phase-1.test.js",
+    "test:phase-0.5": "node --test tests/phase-0.5.test.js",
+    "test:phase-2": "node --test tests/phase-2-master-data.test.js",
     "db:migrate": "node src/db/migrate.js",
     "db:seed": "node src/db/seed.js",
-    "db:reset": "node src/db/reset.js"
+    "db:reset": "node src/db/reset.js",
+    "db:clean-test": "node src/db/cleanTestData.js",
+    "db:fresh": "node src/db/reset.js && node src/db/migrate.js && node src/db/seed.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",
@@ -20,6 +24,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.5.2",
     "jsonwebtoken": "^9.0.3",
     "ws": "^8.21.0",
     "zod": "^4.4.3"

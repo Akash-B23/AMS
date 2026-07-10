@@ -80,11 +80,13 @@ function toAuthUser(user, society) {
   return {
     id: user.id,
     email: user.email,
+    displayName: user.displayName ?? null,
     role: user.role,
     residentId: user.residentId,
     societyId: society?.id ?? null,
     societySlug: society?.slug ?? null,
     societyName: society?.name ?? null,
+    setupComplete: society?.setupCompletedAt != null,
   };
 }
 

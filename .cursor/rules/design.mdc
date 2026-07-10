@@ -1,0 +1,27 @@
+---
+description: Tailwind + visual design direction
+globs:
+  - "client/**/*.jsx"
+  - "client/**/*.css"
+alwaysApply: false
+---
+- Use Tailwind CSS utility classes as the primary styling approach — avoid
+  inline styles and separate CSS files except for true one-offs.
+- Pick a real design direction and stick to it: define a small token set
+  (2-3 accent colors, one display font pairing, consistent spacing/radius
+  scale) before building screens, then reuse it everywhere. No screen
+  should introduce its own one-off palette.
+- Avoid default AI-generated look-alikes: don't default to cream background
+  + terracotta accent, or plain black + one neon accent, without a reason.
+  Pick colors that suit a residential/community product — calm, trustworthy,
+  legible — not a generic SaaS landing page palette.
+- Respect roles visually too: a treasurer/admin dashboard can be denser and
+  data-heavy; a resident's view (dues, complaints) should be simpler and
+  mobile-first, since most residents will check this on their phone.
+- Every screen: usable down to mobile width, visible focus states on
+  interactive elements, no color-only status indicators (pair color with
+  text/icon, e.g. "Paid" badge, not just green).
+- Keep motion minimal and purposeful — a hover state or a subtle transition,
+  not decorative animation everywhere.
+
+  
