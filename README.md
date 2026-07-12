@@ -67,6 +67,19 @@ cp server/.env.example server/.env
 | `JWT_SECRET` | Random secret for auth tokens |
 | `PORT` | API port (default `3000`) |
 | `CLIENT_ORIGIN` | Frontend URL (default `http://localhost:5173`) |
+| `CASHFREE_CLIENT_ID` | Cashfree PG client id (online payments) |
+| `CASHFREE_CLIENT_SECRET` | Cashfree PG client secret (server only; also used for webhook signatures) |
+| `CASHFREE_ENV` | `sandbox` (default) or `production` |
+| `CRON_SECRET` | Bearer token for `/api/jobs/*` cron endpoints |
+
+Configure the Cashfree webhook URL to `POST /api/webhooks/cashfree` (PAYMENT_SUCCESS).
+
+Monthly invoice generation (1st of month) and reminder stubs can be triggered by an external cron:
+
+```bash
+curl -X POST "$API_URL/api/jobs/monthly-invoices" -H "Authorization: Bearer $CRON_SECRET"
+curl -X POST "$API_URL/api/jobs/reminders" -H "Authorization: Bearer $CRON_SECRET"
+```
 
 Generate a JWT secret:
 
@@ -115,6 +128,7 @@ The same email can exist in multiple societies — login always requires the soc
 | `npm run test` | Run all server tests |
 | `npm run test:phase-1` | Run multi-tenant isolation tests |
 | `npm run test:phase-2` | Run master data & profile tests |
+| `npm run test:phase-3` | Run invoicing & dues tests |
 
 ## License
 

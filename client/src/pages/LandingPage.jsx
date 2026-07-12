@@ -36,7 +36,7 @@ const FEATURES = [
   {
     title: "Maintenance billing & payments",
     description:
-      "Generate dues, collect payments via Razorpay, and route funds to each society's linked account.",
+      "Generate dues, collect payments via Cashfree, and split funds to each society's vendor account.",
     status: "soon",
   },
 ];

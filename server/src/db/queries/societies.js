@@ -5,14 +5,18 @@ function mapSociety(row) {
     slug: row.slug,
     isActive: row.is_active,
     setupCompletedAt: row.setup_completed_at ?? null,
+    cashfreeVendorId: row.cashfree_vendor_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
+const SOCIETY_COLUMNS = `id, name, slug, is_active, setup_completed_at,
+  cashfree_vendor_id, created_at, updated_at`;
+
 export async function findSocietyBySlug(client, slug) {
   const result = await client.query(
-    `SELECT id, name, slug, is_active, setup_completed_at, created_at, updated_at
+    `SELECT ${SOCIETY_COLUMNS}
      FROM societies
      WHERE slug = $1
      LIMIT 1`,
@@ -23,11 +27,36 @@ export async function findSocietyBySlug(client, slug) {
 
 export async function findSocietyById(client, id) {
   const result = await client.query(
-    `SELECT id, name, slug, is_active, setup_completed_at, created_at, updated_at
+    `SELECT ${SOCIETY_COLUMNS}
      FROM societies
      WHERE id = $1
      LIMIT 1`,
     [id],
+  );
+  return result.rows[0] ? mapSociety(result.rows[0]) : null;
+}
+
+export async function listActiveSocieties(client) {
+  const result = await client.query(
+    `SELECT ${SOCIETY_COLUMNS}
+     FROM societies
+     WHERE is_active = true
+     ORDER BY name`,
+  );
+  return result.rows.map(mapSociety);
+}
+
+export async function updateCashfreeVendorId(
+  client,
+  societyId,
+  cashfreeVendorId,
+) {
+  const result = await client.query(
+    `UPDATE societies
+     SET cashfree_vendor_id = $2, updated_at = NOW()
+     WHERE id = $1
+     RETURNING ${SOCIETY_COLUMNS}`,
+    [societyId, cashfreeVendorId],
   );
   return result.rows[0] ? mapSociety(result.rows[0]) : null;
 }
@@ -44,7 +73,7 @@ export async function createSociety(client, { name, slug }) {
   const result = await client.query(
     `INSERT INTO societies (name, slug)
      VALUES ($1, $2)
-     RETURNING id, name, slug, is_active, setup_completed_at, created_at, updated_at`,
+     RETURNING ${SOCIETY_COLUMNS}`,
     [name, slug],
   );
   return mapSociety(result.rows[0]);
@@ -55,7 +84,7 @@ export async function markSetupComplete(client, societyId) {
     `UPDATE societies
      SET setup_completed_at = NOW(), updated_at = NOW()
      WHERE id = $1
-     RETURNING id, name, slug, is_active, setup_completed_at, created_at, updated_at`,
+     RETURNING ${SOCIETY_COLUMNS}`,
     [societyId],
   );
   return result.rows[0] ? mapSociety(result.rows[0]) : null;

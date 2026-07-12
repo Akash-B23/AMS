@@ -47,6 +47,31 @@ export async function findResidentWithFlat(client, residentId) {
     : null;
 }
 
+/**
+ * Billing occupant for a flat: prefer active tenant, else active owner.
+ * Documented product rule — no DB uniqueness on (flat_id, resident_type).
+ */
+export async function findBillingResidentForFlat(client, societyId, flatId) {
+  const result = await client.query(
+    `SELECT id, society_id, flat_id, name, phone, email, resident_type,
+            is_active, created_at, updated_at
+     FROM residents
+     WHERE society_id = $1
+       AND flat_id = $2
+       AND is_active = true
+       AND resident_type IN ('tenant', 'owner')
+     ORDER BY CASE resident_type
+                WHEN 'tenant' THEN 0
+                WHEN 'owner' THEN 1
+                ELSE 2
+              END,
+              created_at ASC
+     LIMIT 1`,
+    [societyId, flatId],
+  );
+  return result.rows[0] ? mapResident(result.rows[0]) : null;
+}
+
 export async function updateResidentContact(client, residentId, { name, phone }) {
   const result = await client.query(
     `UPDATE residents

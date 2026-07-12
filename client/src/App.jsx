@@ -10,6 +10,7 @@ import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import MasterDataPage from "./pages/MasterDataPage";
+import PaymentsSettingsPage from "./pages/PaymentsSettingsPage";
 import PlatformDashboard from "./pages/PlatformDashboard";
 import PlatformLoginPage from "./pages/PlatformLoginPage";
 import ResidentDashboard from "./pages/ResidentDashboard";
@@ -17,6 +18,7 @@ import ResidentProfilePage from "./pages/ResidentProfilePage";
 import SignupPage from "./pages/SignupPage";
 import SetupWizardPage from "./pages/SetupWizardPage";
 import StaffDashboard from "./pages/StaffDashboard";
+import StaffDuesPage from "./pages/StaffDuesPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 export default function App() {
@@ -51,6 +53,17 @@ export default function App() {
           <Route element={<StaffRoute />}>
             <Route path="/:societySlug/staff" element={<StaffDashboard />} />
             <Route path="/:societySlug/staff/master-data" element={<MasterDataPage />} />
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={["admin", "treasurer"]} />
+              }
+            >
+              <Route path="/:societySlug/staff/dues" element={<StaffDuesPage />} />
+              <Route
+                path="/:societySlug/staff/payments-settings"
+                element={<PaymentsSettingsPage />}
+              />
+            </Route>
           </Route>
 
           <Route
