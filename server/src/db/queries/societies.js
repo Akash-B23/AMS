@@ -5,14 +5,13 @@ function mapSociety(row) {
     slug: row.slug,
     isActive: row.is_active,
     setupCompletedAt: row.setup_completed_at ?? null,
-    cashfreeVendorId: row.cashfree_vendor_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
 
 const SOCIETY_COLUMNS = `id, name, slug, is_active, setup_completed_at,
-  cashfree_vendor_id, created_at, updated_at`;
+  created_at, updated_at`;
 
 export async function findSocietyBySlug(client, slug) {
   const result = await client.query(
@@ -44,21 +43,6 @@ export async function listActiveSocieties(client) {
      ORDER BY name`,
   );
   return result.rows.map(mapSociety);
-}
-
-export async function updateCashfreeVendorId(
-  client,
-  societyId,
-  cashfreeVendorId,
-) {
-  const result = await client.query(
-    `UPDATE societies
-     SET cashfree_vendor_id = $2, updated_at = NOW()
-     WHERE id = $1
-     RETURNING ${SOCIETY_COLUMNS}`,
-    [societyId, cashfreeVendorId],
-  );
-  return result.rows[0] ? mapSociety(result.rows[0]) : null;
 }
 
 export async function isSlugAvailable(client, slug) {

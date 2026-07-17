@@ -407,32 +407,14 @@ async function seedSociety(client, society, passwordHash) {
 
 
   await seedSampleInvoices(client, societyId, flat101, flat102);
-
-
+  await seedSampleComplaints(client, societyId, flat101);
 
   return societyId;
-
 }
 
 
 
 async function seedSampleInvoices(client, societyId, flat101, flat102) {
-
-  await client.query(
-
-    `UPDATE societies
-
-     SET cashfree_vendor_id = COALESCE(cashfree_vendor_id, 'vendor_seed_demo'),
-
-         updated_at = NOW()
-
-     WHERE id = $1`,
-
-    [societyId],
-
-  );
-
-
 
   const owner = await client.query(
 
@@ -571,6 +553,82 @@ async function seedSampleInvoices(client, societyId, flat101, flat102) {
 
 
   console.log(`Seeded sample invoices for society ${societyId}.`);
+
+}
+
+
+
+async function seedSampleComplaints(client, societyId, flat101) {
+
+  const owner = await client.query(
+
+    `SELECT r.id AS resident_id, u.id AS user_id
+
+     FROM residents r
+
+     JOIN users u ON u.resident_id = r.id AND u.society_id = r.society_id
+
+     WHERE r.society_id = $1 AND r.flat_id = $2 AND r.is_active = true
+
+     ORDER BY CASE r.resident_type WHEN 'owner' THEN 0 ELSE 1 END
+
+     LIMIT 1`,
+
+    [societyId, flat101],
+
+  );
+
+  if (!owner.rows[0]) {
+
+    return;
+
+  }
+
+  const { resident_id: residentId, user_id: userId } = owner.rows[0];
+
+  const existing = await client.query(
+
+    `SELECT 1 FROM complaints
+
+     WHERE society_id = $1 AND raised_by_resident_id = $2
+
+     LIMIT 1`,
+
+    [societyId, residentId],
+
+  );
+
+  if (existing.rows[0]) {
+
+    return;
+
+  }
+
+  await client.query(
+
+    `INSERT INTO complaints (
+
+       society_id, flat_id, raised_by_resident_id, raised_by_user_id,
+
+       category, title, description, status
+
+     )
+
+     VALUES
+
+       ($1, $2, $3, $4, 'plumbing', 'Kitchen sink leak',
+
+        'Water drips under the kitchen sink whenever the tap is on.', 'open'),
+
+       ($1, $2, $3, $4, 'lift', 'Lift noise on floor 1',
+
+        'Unusual grinding sound from the lift near flat 101 in the evenings.', 'open')`,
+
+    [societyId, flat101, residentId, userId],
+
+  );
+
+  console.log(`Seeded sample complaints for society ${societyId}.`);
 
 }
 

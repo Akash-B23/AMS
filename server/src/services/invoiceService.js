@@ -11,12 +11,11 @@ import {
   listPendingInvoicesForReminders,
   markInvoicePaid,
 } from "../db/queries/invoices.js";
-import { createPayment } from "../db/queries/payments.js";
+import { createPayment, capturePayment, failPayment, findOpenPaymentForInvoice } from "../db/queries/payments.js";
 import { findBillingResidentForFlat } from "../db/queries/residents.js";
 import {
   findSocietyById,
   listActiveSocieties,
-  updateCashfreeVendorId,
 } from "../db/queries/societies.js";
 import { findUserById } from "../db/queries/users.js";
 import {
@@ -51,8 +50,17 @@ const markPaidSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
 });
 
-const paymentsSettingsSchema = z.object({
-  cashfreeVendorId: z.string().min(1).max(64).nullable().optional(),
+const submitPaymentSchema = z.object({
+  transactionRef: z
+    .string()
+    .trim()
+    .min(4, "Transaction ID is required")
+    .max(128),
+  notes: z.string().max(500).optional().nullable(),
+});
+
+const rejectPaymentSchema = z.object({
+  notes: z.string().max(500).optional().nullable(),
 });
 
 function billingPeriodDate(year, month) {
@@ -242,6 +250,11 @@ export async function markInvoicePaidOffline(
       return { error: "not_pending" };
     }
 
+    const openPayment = await findOpenPaymentForInvoice(tx, invoiceId);
+    if (openPayment) {
+      return { error: "awaiting_verification" };
+    }
+
     const paid = await markInvoicePaid(tx, invoiceId);
     if (!paid) {
       return { error: "not_pending" };
@@ -302,67 +315,159 @@ export async function getResidentDues(userId, societyId) {
   });
 }
 
-export async function updateSocietyPaymentsSettings(
+export async function submitResidentPayment(
+  userId,
   societyId,
-  actorUserId,
+  invoiceId,
   body,
 ) {
-  const parsed = paymentsSettingsSchema.safeParse(body ?? {});
+  const parsed = submitPaymentSchema.safeParse(body ?? {});
   if (!parsed.success) {
     return { error: "validation", issues: parsed.error.issues };
   }
 
   return withDbContext({ societyId }, async (tx) => {
-    const vendorId =
-      parsed.data.cashfreeVendorId === undefined
-        ? undefined
-        : parsed.data.cashfreeVendorId;
-
-    if (vendorId === undefined) {
-      const society = await findSocietyById(tx, societyId);
-      return {
-        society: {
-          id: society.id,
-          name: society.name,
-          cashfreeVendorId: society.cashfreeVendorId,
-        },
-      };
+    const user = await findUserById(tx, userId);
+    if (!user || !user.residentId) {
+      return { error: "no_resident_profile" };
     }
 
-    const society = await updateCashfreeVendorId(tx, societyId, vendorId);
+    const invoice = await findInvoiceById(tx, invoiceId);
+    if (!invoice || invoice.societyId !== societyId) {
+      return { error: "not_found" };
+    }
+    if (invoice.billedResidentId !== user.residentId) {
+      return { error: "forbidden" };
+    }
+    if (invoice.status !== "pending") {
+      return { error: "not_pending" };
+    }
+
+    const openPayment = await findOpenPaymentForInvoice(tx, invoiceId);
+    if (openPayment) {
+      return { error: "already_submitted" };
+    }
+
+    const payment = await createPayment(tx, {
+      societyId,
+      invoiceId,
+      amountPaise: invoice.amountPaise,
+      method: "upi_offline",
+      status: "created",
+      transactionRef: parsed.data.transactionRef,
+      recordedByUserId: userId,
+      notes: parsed.data.notes ?? null,
+    });
+
+    await createAuditLog(tx, {
+      societyId,
+      actorUserId: userId,
+      action: "invoice.submit_payment",
+      entityType: "invoice",
+      entityId: invoiceId,
+      meta: {
+        paymentId: payment.id,
+        amountPaise: invoice.amountPaise,
+      },
+    });
+
+    const updated = await findInvoiceById(tx, invoiceId);
+    return { invoice: updated, payment };
+  });
+}
+
+export async function verifyResidentPayment(
+  societyId,
+  actorUserId,
+  invoiceId,
+) {
+  return withDbContext({ societyId }, async (tx) => {
+    const invoice = await findInvoiceById(tx, invoiceId);
+    if (!invoice || invoice.societyId !== societyId) {
+      return { error: "not_found" };
+    }
+    if (invoice.status !== "pending") {
+      return { error: "not_pending" };
+    }
+
+    const openPayment = await findOpenPaymentForInvoice(tx, invoiceId);
+    if (!openPayment || !openPayment.transactionRef) {
+      return { error: "no_submission" };
+    }
+
+    const payment = await capturePayment(tx, openPayment.id);
+    if (!payment) {
+      return { error: "no_submission" };
+    }
+
+    const paid = await markInvoicePaid(tx, invoiceId);
+    if (!paid) {
+      return { error: "not_pending" };
+    }
 
     await createAuditLog(tx, {
       societyId,
       actorUserId,
-      action: "society.payments_settings",
-      entityType: "society",
-      entityId: societyId,
-      meta: { cashfreeVendorId: vendorId },
+      action: "invoice.verify_payment",
+      entityType: "invoice",
+      entityId: invoiceId,
+      meta: {
+        paymentId: payment.id,
+        amountPaise: invoice.amountPaise,
+      },
     });
 
-    return {
-      society: {
-        id: society.id,
-        name: society.name,
-        cashfreeVendorId: society.cashfreeVendorId,
-      },
-    };
+    const updated = await findInvoiceById(tx, invoiceId);
+    return { invoice: updated, payment };
   });
 }
 
-export async function getSocietyPaymentsSettings(societyId) {
+export async function rejectResidentPayment(
+  societyId,
+  actorUserId,
+  invoiceId,
+  body,
+) {
+  const parsed = rejectPaymentSchema.safeParse(body ?? {});
+  if (!parsed.success) {
+    return { error: "validation", issues: parsed.error.issues };
+  }
+
   return withDbContext({ societyId }, async (tx) => {
-    const society = await findSocietyById(tx, societyId);
-    if (!society) {
+    const invoice = await findInvoiceById(tx, invoiceId);
+    if (!invoice || invoice.societyId !== societyId) {
       return { error: "not_found" };
     }
-    return {
-      society: {
-        id: society.id,
-        name: society.name,
-        cashfreeVendorId: society.cashfreeVendorId,
+    if (invoice.status !== "pending") {
+      return { error: "not_pending" };
+    }
+
+    const openPayment = await findOpenPaymentForInvoice(tx, invoiceId);
+    if (!openPayment || !openPayment.transactionRef) {
+      return { error: "no_submission" };
+    }
+
+    const payment = await failPayment(tx, openPayment.id, {
+      notes: parsed.data.notes ?? null,
+    });
+    if (!payment) {
+      return { error: "no_submission" };
+    }
+
+    await createAuditLog(tx, {
+      societyId,
+      actorUserId,
+      action: "invoice.reject_payment",
+      entityType: "invoice",
+      entityId: invoiceId,
+      meta: {
+        paymentId: payment.id,
+        amountPaise: invoice.amountPaise,
       },
-    };
+    });
+
+    const updated = await findInvoiceById(tx, invoiceId);
+    return { invoice: updated, payment };
   });
 }
 

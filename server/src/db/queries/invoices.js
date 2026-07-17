@@ -9,8 +9,24 @@ function toDateOnly(value) {
 function mapInvoice(row) {
   const dueDate = toDateOnly(row.due_date);
   const today = new Date().toISOString().slice(0, 10);
+  const transactionRef = row.transaction_ref ?? null;
+  const paymentStatus = row.payment_status ?? null;
+  const awaitingVerification =
+    row.status === "pending" &&
+    paymentStatus === "created" &&
+    Boolean(transactionRef);
   const isOverdue =
-    row.status === "pending" && dueDate != null && dueDate < today;
+    row.status === "pending" &&
+    !awaitingVerification &&
+    dueDate != null &&
+    dueDate < today;
+
+  let displayStatus = row.status;
+  if (awaitingVerification) {
+    displayStatus = "awaiting_verification";
+  } else if (isOverdue) {
+    displayStatus = "overdue";
+  }
 
   return {
     id: row.id,
@@ -20,7 +36,10 @@ function mapInvoice(row) {
     billingPeriod: toDateOnly(row.billing_period),
     amountPaise: row.amount_paise,
     status: row.status,
-    displayStatus: isOverdue ? "overdue" : row.status,
+    displayStatus,
+    transactionRef,
+    paymentStatus,
+    pendingPaymentId: row.pending_payment_id ?? null,
     dueDate,
     issuedAt: row.issued_at,
     paidAt: row.paid_at,
@@ -35,17 +54,29 @@ function mapInvoice(row) {
   };
 }
 
+const INVOICE_SELECT = `
+  SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
+         i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
+         i.created_at, i.updated_at,
+         f.flat_number, b.name AS block_name, b.id AS block_id,
+         r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone,
+         pp.transaction_ref, pp.status AS payment_status, pp.id AS pending_payment_id
+  FROM invoices i
+  JOIN flats f ON f.id = i.flat_id
+  JOIN blocks b ON b.id = f.block_id
+  JOIN residents r ON r.id = i.billed_resident_id
+  LEFT JOIN LATERAL (
+    SELECT p.id, p.transaction_ref, p.status
+    FROM payments p
+    WHERE p.invoice_id = i.id AND p.status = 'created'
+    ORDER BY p.created_at DESC
+    LIMIT 1
+  ) pp ON true
+`;
+
 export async function findInvoiceById(client, invoiceId) {
   const result = await client.query(
-    `SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
-            i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
-            i.created_at, i.updated_at,
-            f.flat_number, b.name AS block_name, b.id AS block_id,
-            r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone
-     FROM invoices i
-     JOIN flats f ON f.id = i.flat_id
-     JOIN blocks b ON b.id = f.block_id
-     JOIN residents r ON r.id = i.billed_resident_id
+    `${INVOICE_SELECT}
      WHERE i.id = $1
      LIMIT 1`,
     [invoiceId],
@@ -117,15 +148,7 @@ export async function listInvoices(
   }
 
   const result = await client.query(
-    `SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
-            i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
-            i.created_at, i.updated_at,
-            f.flat_number, b.name AS block_name, b.id AS block_id,
-            r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone
-     FROM invoices i
-     JOIN flats f ON f.id = i.flat_id
-     JOIN blocks b ON b.id = f.block_id
-     JOIN residents r ON r.id = i.billed_resident_id
+    `${INVOICE_SELECT}
      WHERE ${conditions.join(" AND ")}
      ORDER BY i.billing_period DESC, b.name, f.flat_number`,
     params,
@@ -152,15 +175,7 @@ export async function listPendingDues(
   }
 
   const result = await client.query(
-    `SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
-            i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
-            i.created_at, i.updated_at,
-            f.flat_number, b.name AS block_name, b.id AS block_id,
-            r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone
-     FROM invoices i
-     JOIN flats f ON f.id = i.flat_id
-     JOIN blocks b ON b.id = f.block_id
-     JOIN residents r ON r.id = i.billed_resident_id
+    `${INVOICE_SELECT}
      WHERE ${conditions.join(" AND ")}
      ORDER BY i.due_date ASC, b.name, f.flat_number`,
     params,
@@ -170,15 +185,7 @@ export async function listPendingDues(
 
 export async function listInvoicesForResident(client, societyId, residentId) {
   const result = await client.query(
-    `SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
-            i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
-            i.created_at, i.updated_at,
-            f.flat_number, b.name AS block_name, b.id AS block_id,
-            r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone
-     FROM invoices i
-     JOIN flats f ON f.id = i.flat_id
-     JOIN blocks b ON b.id = f.block_id
-     JOIN residents r ON r.id = i.billed_resident_id
+    `${INVOICE_SELECT}
      WHERE i.society_id = $1 AND i.billed_resident_id = $2
      ORDER BY i.billing_period DESC`,
     [societyId, residentId],
@@ -201,15 +208,7 @@ export async function markInvoicePaid(client, invoiceId, paidAt = new Date()) {
 
 export async function listPendingInvoicesForReminders(client, societyId) {
   const result = await client.query(
-    `SELECT i.id, i.society_id, i.flat_id, i.billed_resident_id, i.billing_period,
-            i.amount_paise, i.status, i.due_date, i.issued_at, i.paid_at,
-            i.created_at, i.updated_at,
-            f.flat_number, b.name AS block_name, b.id AS block_id,
-            r.name AS resident_name, r.email AS resident_email, r.phone AS resident_phone
-     FROM invoices i
-     JOIN flats f ON f.id = i.flat_id
-     JOIN blocks b ON b.id = f.block_id
-     JOIN residents r ON r.id = i.billed_resident_id
+    `${INVOICE_SELECT}
      WHERE i.society_id = $1 AND i.status = 'pending'
      ORDER BY i.due_date ASC`,
     [societyId],

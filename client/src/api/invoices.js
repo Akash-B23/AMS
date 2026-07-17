@@ -4,10 +4,10 @@ export function getResidentDues() {
   return apiFetch("/api/resident/dues");
 }
 
-export function createPaymentOrder(invoiceId) {
-  return apiFetch(`/api/resident/invoices/${invoiceId}/pay`, {
+export function submitPayment(invoiceId, body) {
+  return apiFetch(`/api/resident/invoices/${invoiceId}/submit-payment`, {
     method: "POST",
-    body: JSON.stringify({}),
+    body: JSON.stringify(body),
   });
 }
 
@@ -42,20 +42,23 @@ export function markInvoicePaid(invoiceId, body) {
   });
 }
 
-export function runReminders() {
-  return apiFetch("/api/invoices/reminders", {
+export function verifyPayment(invoiceId) {
+  return apiFetch(`/api/invoices/${invoiceId}/verify-payment`, {
     method: "POST",
     body: JSON.stringify({}),
   });
 }
 
-export function getPaymentsSettings() {
-  return apiFetch("/api/societies/me/payments");
+export function rejectPayment(invoiceId, body = {}) {
+  return apiFetch(`/api/invoices/${invoiceId}/reject-payment`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }
 
-export function updatePaymentsSettings(body) {
-  return apiFetch("/api/societies/me/payments", {
-    method: "PATCH",
-    body: JSON.stringify(body),
+export function runReminders() {
+  return apiFetch("/api/invoices/reminders", {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 }

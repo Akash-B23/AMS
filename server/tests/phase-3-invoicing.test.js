@@ -2,7 +2,7 @@
  * Phase 3 — Invoicing & Dues
  *
  * Verifies: invoice generation idempotency, pending dues, resident isolation,
- * role gates, webhook signature rejection, cron auth.
+ * role gates, manual payment submit/verify/reject, cron auth.
  *
  * Prerequisites:
  *   - server/.env with DATABASE_URL and JWT_SECRET
@@ -14,7 +14,6 @@
 
 import "dotenv/config";
 import assert from "node:assert/strict";
-import crypto from "node:crypto";
 import { before, describe, test } from "node:test";
 import request from "supertest";
 import { createApp } from "../src/app.js";
@@ -35,11 +34,6 @@ describe("Phase 3 — Invoicing & Dues", () => {
       throw new Error("JWT_SECRET is required to run Phase 3 tests");
     }
     process.env.CRON_SECRET = process.env.CRON_SECRET || "test-cron-secret";
-    process.env.CASHFREE_CLIENT_ID =
-      process.env.CASHFREE_CLIENT_ID || "test-client-id";
-    process.env.CASHFREE_CLIENT_SECRET =
-      process.env.CASHFREE_CLIENT_SECRET || "test-client-secret";
-    process.env.CASHFREE_ENV = process.env.CASHFREE_ENV || "sandbox";
     app = createApp();
   });
 
@@ -137,48 +131,91 @@ describe("Phase 3 — Invoicing & Dues", () => {
     }
   });
 
-  test("cashfree webhook rejects invalid signature", async () => {
-    const body = JSON.stringify({
-      type: "PAYMENT_SUCCESS",
-      data: {
-        order: { order_id: "order_x" },
-        payment: { cf_payment_id: "pay_x" },
-      },
+  test("resident submit → staff verify marks invoice paid", async () => {
+    const resident = request.agent(app);
+    await resident.post("/api/auth/login").send({
+      societySlug: GREENVIEW,
+      email: "resident@ams.local",
+      password: SEED_PASSWORD,
     });
-    const timestamp = String(Date.now());
 
-    const res = await request(app)
-      .post("/api/webhooks/cashfree")
-      .set("Content-Type", "application/json")
-      .set("x-webhook-timestamp", timestamp)
-      .set("x-webhook-signature", "invalid")
-      .send(body);
+    const dues = await resident.get("/api/resident/dues");
+    assert.equal(dues.status, 200);
+    const invoice = (dues.body.unpaidInvoices ?? []).find(
+      (inv) => inv.displayStatus !== "awaiting_verification",
+    );
+    if (!invoice) {
+      return;
+    }
 
-    assert.equal(res.status, 400);
+    const submit = await resident
+      .post(`/api/resident/invoices/${invoice.id}/submit-payment`)
+      .send({ transactionRef: "UTRTESTVERIFY001" });
+    assert.equal(submit.status, 200);
+    assert.equal(submit.body.payment.status, "created");
+    assert.equal(submit.body.invoice.displayStatus, "awaiting_verification");
+
+    const duplicate = await resident
+      .post(`/api/resident/invoices/${invoice.id}/submit-payment`)
+      .send({ transactionRef: "UTRTESTVERIFY002" });
+    assert.equal(duplicate.status, 409);
+
+    const admin = request.agent(app);
+    await admin.post("/api/auth/login").send({
+      societySlug: GREENVIEW,
+      email: "admin@ams.local",
+      password: SEED_PASSWORD,
+    });
+
+    const verify = await admin
+      .post(`/api/invoices/${invoice.id}/verify-payment`)
+      .send({});
+    assert.equal(verify.status, 200);
+    assert.equal(verify.body.invoice.status, "paid");
+    assert.equal(verify.body.payment.status, "captured");
   });
 
-  test("cashfree webhook accepts valid signature for unknown payment as 404", async () => {
-    const body = JSON.stringify({
-      type: "PAYMENT_SUCCESS",
-      data: {
-        order: { order_id: "order_test_unknown" },
-        payment: { cf_payment_id: "pay_test_unknown" },
-      },
+  test("resident submit → staff reject allows resubmit", async () => {
+    const resident = request.agent(app);
+    await resident.post("/api/auth/login").send({
+      societySlug: GREENVIEW,
+      email: "resident@ams.local",
+      password: SEED_PASSWORD,
     });
-    const timestamp = String(Date.now());
-    const signature = crypto
-      .createHmac("sha256", process.env.CASHFREE_CLIENT_SECRET)
-      .update(timestamp + body)
-      .digest("base64");
 
-    const res = await request(app)
-      .post("/api/webhooks/cashfree")
-      .set("Content-Type", "application/json")
-      .set("x-webhook-timestamp", timestamp)
-      .set("x-webhook-signature", signature)
-      .send(body);
+    const dues = await resident.get("/api/resident/dues");
+    assert.equal(dues.status, 200);
+    const invoice = (dues.body.unpaidInvoices ?? []).find(
+      (inv) => inv.displayStatus !== "awaiting_verification",
+    );
+    if (!invoice) {
+      return;
+    }
 
-    assert.equal(res.status, 404);
+    const submit = await resident
+      .post(`/api/resident/invoices/${invoice.id}/submit-payment`)
+      .send({ transactionRef: "UTRTESTREJECT001" });
+    assert.equal(submit.status, 200);
+
+    const admin = request.agent(app);
+    await admin.post("/api/auth/login").send({
+      societySlug: GREENVIEW,
+      email: "admin@ams.local",
+      password: SEED_PASSWORD,
+    });
+
+    const reject = await admin
+      .post(`/api/invoices/${invoice.id}/reject-payment`)
+      .send({ notes: "Invalid UTR" });
+    assert.equal(reject.status, 200);
+    assert.equal(reject.body.payment.status, "failed");
+    assert.equal(reject.body.invoice.status, "pending");
+
+    const resubmit = await resident
+      .post(`/api/resident/invoices/${invoice.id}/submit-payment`)
+      .send({ transactionRef: "UTRTESTREJECT002" });
+    assert.equal(resubmit.status, 200);
+    assert.equal(resubmit.body.payment.status, "created");
   });
 
   test("cron monthly-invoices requires secret", async () => {
@@ -205,7 +242,9 @@ describe("Phase 3 — Invoicing & Dues", () => {
 
     const dues = await agent.get("/api/invoices/dues");
     assert.equal(dues.status, 200);
-    const invoice = dues.body.invoices[0];
+    const invoice = (dues.body.invoices ?? []).find(
+      (inv) => inv.displayStatus !== "awaiting_verification",
+    );
     if (!invoice) {
       return;
     }

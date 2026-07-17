@@ -30,20 +30,20 @@ const FEATURES = [
   {
     title: "Complaints & maintenance requests",
     description:
-      "Residents raise issues; staff track and resolve them with a clear status workflow.",
-    status: "soon",
+      "Residents raise issues; managers and admins update status with optional staff notes.",
+    status: "live",
   },
   {
     title: "Maintenance billing & payments",
     description:
-      "Generate dues, collect payments via Cashfree, and split funds to each society's vendor account.",
-    status: "soon",
+      "Generate dues, collect transaction IDs from residents, and verify payments before marking invoices paid.",
+    status: "live",
   },
 ];
 
 const ROLES = [
   { name: "Resident / Tenant", portal: "Resident portal", detail: "Profile, dues, complaints" },
-  { name: "Manager / Admin", portal: "Staff portal", detail: "Operations, master data, residents" },
+  { name: "Manager / Admin", portal: "Staff portal", detail: "Complaints, master data, operations" },
   { name: "Treasurer / Staff", portal: "Staff portal", detail: "Finance and day-to-day tasks" },
   { name: "Platform superadmin", portal: "Platform login", detail: "Cross-tenant support only" },
 ];
@@ -65,7 +65,7 @@ const STEPS = [
     step: "3",
     title: "Invite residents & staff",
     description:
-      "Residents log in at your society URL. Staff manage master data, and upcoming phases add complaints and billing.",
+      "Residents log in at your society URL. Staff manage complaints, master data, and billing.",
   },
 ];
 

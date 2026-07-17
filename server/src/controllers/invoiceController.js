@@ -3,12 +3,12 @@ import {
   getInvoiceList,
   getPendingDues,
   getResidentDues,
-  getSocietyPaymentsSettings,
   markInvoicePaidOffline,
+  rejectResidentPayment,
   runRemindersForSociety,
-  updateSocietyPaymentsSettings,
+  submitResidentPayment,
+  verifyResidentPayment,
 } from "../services/invoiceService.js";
-import { createResidentPaymentOrder } from "../services/paymentService.js";
 
 function validationError(res, result) {
   const message = result.issues?.[0]?.message ?? "Invalid input";
@@ -61,6 +61,12 @@ export async function markPaidHandler(req, res) {
     res.status(404).json({ error: "Invoice not found" });
     return;
   }
+  if (result.error === "awaiting_verification") {
+    res.status(409).json({
+      error: "Invoice has a payment awaiting verification — verify or reject it first",
+    });
+    return;
+  }
   if (result.error === "not_pending") {
     res.status(409).json({ error: "Invoice is not pending" });
     return;
@@ -68,23 +74,48 @@ export async function markPaidHandler(req, res) {
   res.json(result);
 }
 
-export async function getPaymentsSettingsHandler(req, res) {
-  const result = await getSocietyPaymentsSettings(req.user.societyId);
+export async function verifyPaymentHandler(req, res) {
+  const result = await verifyResidentPayment(
+    req.user.societyId,
+    req.user.id,
+    req.params.id,
+  );
   if (result.error === "not_found") {
-    res.status(404).json({ error: "Society not found" });
+    res.status(404).json({ error: "Invoice not found" });
+    return;
+  }
+  if (result.error === "no_submission") {
+    res.status(409).json({ error: "No payment submission to verify" });
+    return;
+  }
+  if (result.error === "not_pending") {
+    res.status(409).json({ error: "Invoice is not pending" });
     return;
   }
   res.json(result);
 }
 
-export async function updatePaymentsSettingsHandler(req, res) {
-  const result = await updateSocietyPaymentsSettings(
+export async function rejectPaymentHandler(req, res) {
+  const result = await rejectResidentPayment(
     req.user.societyId,
     req.user.id,
+    req.params.id,
     req.body,
   );
   if (result.error === "validation") {
     validationError(res, result);
+    return;
+  }
+  if (result.error === "not_found") {
+    res.status(404).json({ error: "Invoice not found" });
+    return;
+  }
+  if (result.error === "no_submission") {
+    res.status(409).json({ error: "No payment submission to reject" });
+    return;
+  }
+  if (result.error === "not_pending") {
+    res.status(409).json({ error: "Invoice is not pending" });
     return;
   }
   res.json(result);
@@ -99,24 +130,19 @@ export async function residentDuesHandler(req, res) {
   res.json(result);
 }
 
-export async function residentPayHandler(req, res) {
-  const result = await createResidentPaymentOrder(
+export async function residentSubmitPaymentHandler(req, res) {
+  const result = await submitResidentPayment(
     req.user.id,
     req.user.societyId,
     req.params.id,
+    req.body,
   );
-  if (result.error === "cashfree_not_configured") {
-    res.status(503).json({ error: "Online payments are not configured" });
+  if (result.error === "validation") {
+    validationError(res, result);
     return;
   }
   if (result.error === "no_resident_profile") {
     res.status(404).json({ error: "Resident profile not found" });
-    return;
-  }
-  if (result.error === "vendor_missing") {
-    res.status(400).json({
-      error: "Society Cashfree vendor is not configured",
-    });
     return;
   }
   if (result.error === "not_found") {
@@ -131,8 +157,10 @@ export async function residentPayHandler(req, res) {
     res.status(409).json({ error: "Invoice is not pending" });
     return;
   }
-  if (result.error === "cashfree_order_failed") {
-    res.status(502).json({ error: result.message ?? "Payment order failed" });
+  if (result.error === "already_submitted") {
+    res.status(409).json({
+      error: "A payment is already awaiting verification for this invoice",
+    });
     return;
   }
   res.json(result);

@@ -10,8 +10,8 @@ AMS is a multi-tenant web application for apartment societies and housing associ
 - **Platform admin** — Platform superadmin for cross-tenant support (separate login)
 - **Building structure** — Organizes each society into blocks, flats, and residents
 - **Secure access** — Role-based authentication with RLS-enforced tenant isolation
-- **Complaints & maintenance** — Track issues and maintenance requests (in development)
-- **Payments & dues** — Handle maintenance billing and payment records (in development)
+- **Complaints & maintenance** — Residents raise issues; managers/admins update status
+- **Payments & dues** — Maintenance billing with manual transaction-ID verification
 - **Notices** — Share announcements with residents (in development)
 
 ## Who uses it
@@ -67,12 +67,9 @@ cp server/.env.example server/.env
 | `JWT_SECRET` | Random secret for auth tokens |
 | `PORT` | API port (default `3000`) |
 | `CLIENT_ORIGIN` | Frontend URL (default `http://localhost:5173`) |
-| `CASHFREE_CLIENT_ID` | Cashfree PG client id (online payments) |
-| `CASHFREE_CLIENT_SECRET` | Cashfree PG client secret (server only; also used for webhook signatures) |
-| `CASHFREE_ENV` | `sandbox` (default) or `production` |
 | `CRON_SECRET` | Bearer token for `/api/jobs/*` cron endpoints |
 
-Configure the Cashfree webhook URL to `POST /api/webhooks/cashfree` (PAYMENT_SUCCESS).
+Residents submit a bank/UPI transaction ID for each invoice; staff verify or reject before the invoice is marked paid.
 
 Monthly invoice generation (1st of month) and reminder stubs can be triggered by an external cron:
 

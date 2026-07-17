@@ -26,25 +26,24 @@ export default function StaffDashboard() {
         <Card>
           <h2 className="text-base font-semibold text-slate-900">Overview</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Staff dashboard for {user?.role}. Complaints and expenses will be
+            Staff dashboard for {user?.role}. Expenses and vendors will be
             added in later phases.
           </p>
         </Card>
 
-        {canManageFinance && (
+        {canManageMasterData && (
           <Card>
             <h2 className="text-base font-semibold text-slate-900">
-              Pending dues
+              Complaints
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Generate monthly invoices, view outstanding dues, mark offline
-              payments, and run reminder stubs.
+              Review resident complaints and update status as work progresses.
             </p>
             <Link
-              to={`/${societySlug}/staff/dues`}
+              to={`/${societySlug}/staff/complaints`}
               className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
             >
-              Open dues
+              Open complaints
             </Link>
           </Card>
         )}
@@ -52,17 +51,17 @@ export default function StaffDashboard() {
         {canManageFinance && (
           <Card>
             <h2 className="text-base font-semibold text-slate-900">
-              Payment settings
+              Pending dues
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              Configure the society Cashfree vendor ID for Easy Split
-              maintenance payments.
+              Generate monthly invoices, view outstanding dues, verify resident
+              transaction IDs, mark offline payments, and run reminder stubs.
             </p>
             <Link
-              to={`/${societySlug}/staff/payments-settings`}
-              className="mt-4 inline-flex rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 no-underline transition hover:bg-slate-50"
+              to={`/${societySlug}/staff/dues`}
+              className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
             >
-              Open settings
+              Open dues
             </Link>
           </Card>
         )}

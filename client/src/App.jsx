@@ -10,14 +10,15 @@ import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import MasterDataPage from "./pages/MasterDataPage";
-import PaymentsSettingsPage from "./pages/PaymentsSettingsPage";
 import PlatformDashboard from "./pages/PlatformDashboard";
 import PlatformLoginPage from "./pages/PlatformLoginPage";
 import ResidentDashboard from "./pages/ResidentDashboard";
+import ResidentComplaintsPage from "./pages/ResidentComplaintsPage";
 import ResidentProfilePage from "./pages/ResidentProfilePage";
 import SignupPage from "./pages/SignupPage";
 import SetupWizardPage from "./pages/SetupWizardPage";
 import StaffDashboard from "./pages/StaffDashboard";
+import StaffComplaintsPage from "./pages/StaffComplaintsPage";
 import StaffDuesPage from "./pages/StaffDuesPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
@@ -44,6 +45,7 @@ export default function App() {
           >
             <Route path="/:societySlug/resident" element={<ResidentDashboard />} />
             <Route path="/:societySlug/resident/profile" element={<ResidentProfilePage />} />
+            <Route path="/:societySlug/resident/complaints" element={<ResidentComplaintsPage />} />
           </Route>
 
           <Route element={<SetupRoute />}>
@@ -55,14 +57,17 @@ export default function App() {
             <Route path="/:societySlug/staff/master-data" element={<MasterDataPage />} />
             <Route
               element={
+                <ProtectedRoute allowedRoles={["manager", "admin"]} />
+              }
+            >
+              <Route path="/:societySlug/staff/complaints" element={<StaffComplaintsPage />} />
+            </Route>
+            <Route
+              element={
                 <ProtectedRoute allowedRoles={["admin", "treasurer"]} />
               }
             >
               <Route path="/:societySlug/staff/dues" element={<StaffDuesPage />} />
-              <Route
-                path="/:societySlug/staff/payments-settings"
-                element={<PaymentsSettingsPage />}
-              />
             </Route>
           </Route>
 

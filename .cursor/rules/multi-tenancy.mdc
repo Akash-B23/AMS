@@ -30,17 +30,11 @@ alwaysApply: false
 - Passwords: bcrypt/argon2 hashed, never stored or logged in plaintext.
 - JWT or session-based auth — either is fine, but be consistent, and store
   role in the token/session, re-verify role server-side on every request.
-- Payment gateway is Cashfree, using **Easy Split** — each society has its
-  own Cashfree vendor id tied to its own bank details. Maintenance payments
-  must be split to the correct society's vendor, never pooled into one
-  central account. Get the vendor id from the society's record before
-  creating any payment order.
-- Never trust client-side "payment success" callbacks alone — an invoice
-  is only marked paid after Cashfree's webhook confirms it server-side,
-  with signature verification on every webhook payload.
-- Cashfree credentials (client id / client secret) live in server-side env
-  vars only — never in client/ code, never committed to git.
-- Webhook handler must be idempotent (Cashfree can retry/resend the same
-  event) — check payment/order id before applying an update twice.
+- Residents may submit a transaction / UTR ID for an invoice, but that alone
+  never marks an invoice paid. Only society staff (admin/treasurer) verifying
+  the submission — or marking paid offline — updates invoice status.
+- Never trust client-side claims of payment success. Server-side verification
+  (staff action) is required before status changes.
+- Do not log full payment transaction refs in client-side analytics.
 - Never expose other residents' contact/vehicle details across flats unless
   the requester is manager/admin/staff.

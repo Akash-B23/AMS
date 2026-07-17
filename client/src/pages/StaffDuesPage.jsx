@@ -20,7 +20,13 @@ import {
 function statusVariant(displayStatus) {
   if (displayStatus === "overdue") return "overdue";
   if (displayStatus === "paid") return "paid";
+  if (displayStatus === "awaiting_verification") return "warning";
   return "pending";
+}
+
+function statusLabel(displayStatus) {
+  if (displayStatus === "awaiting_verification") return "awaiting verification";
+  return displayStatus;
 }
 
 export default function StaffDuesPage() {
@@ -35,6 +41,8 @@ export default function StaffDuesPage() {
   const [markPaidId, setMarkPaidId] = useState(null);
   const [markMethod, setMarkMethod] = useState("cash");
   const [markNotes, setMarkNotes] = useState("");
+  const [rejectId, setRejectId] = useState(null);
+  const [rejectNotes, setRejectNotes] = useState("");
 
   const loadDues = useCallback(async () => {
     const data = await invoicesApi.getPendingDues({ overdueOnly });
@@ -99,6 +107,42 @@ export default function StaffDuesPage() {
       await loadDues();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Mark paid failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleVerify(invoiceId) {
+    setError(null);
+    setSuccess(null);
+    setBusy(true);
+    try {
+      await invoicesApi.verifyPayment(invoiceId);
+      setSuccess("Payment verified and invoice marked paid.");
+      await loadDues();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Verify failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleReject(e) {
+    e.preventDefault();
+    if (!rejectId) return;
+    setError(null);
+    setSuccess(null);
+    setBusy(true);
+    try {
+      await invoicesApi.rejectPayment(rejectId, {
+        notes: rejectNotes || null,
+      });
+      setSuccess("Payment submission rejected. Resident can resubmit.");
+      setRejectId(null);
+      setRejectNotes("");
+      await loadDues();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Reject failed");
     } finally {
       setBusy(false);
     }
@@ -206,6 +250,41 @@ export default function StaffDuesPage() {
           </Card>
         )}
 
+        {rejectId && (
+          <Card>
+            <h2 className="text-base font-semibold text-slate-900">
+              Reject payment submission
+            </h2>
+            <p className="mt-1 text-sm text-slate-600">
+              The resident will be able to submit a new transaction ID.
+            </p>
+            <form onSubmit={handleReject} className="mt-4 space-y-3">
+              <FormField label="Reason (optional)">
+                <Input
+                  value={rejectNotes}
+                  onChange={(e) => setRejectNotes(e.target.value)}
+                  maxLength={500}
+                />
+              </FormField>
+              <div className="flex gap-2">
+                <Button type="submit" disabled={busy}>
+                  Confirm reject
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setRejectId(null);
+                    setRejectNotes("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Card>
+        )}
+
         <Card className="overflow-x-auto">
           <table className="min-w-full text-left text-sm">
             <thead className="border-b border-slate-200 text-slate-600">
@@ -215,49 +294,86 @@ export default function StaffDuesPage() {
                 <th className="px-2 py-2 font-medium">Period</th>
                 <th className="px-2 py-2 font-medium">Due</th>
                 <th className="px-2 py-2 font-medium">Amount</th>
+                <th className="px-2 py-2 font-medium">Txn ID</th>
                 <th className="px-2 py-2 font-medium">Status</th>
                 <th className="px-2 py-2 font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {(dues?.invoices ?? []).map((invoice) => (
-                <tr key={invoice.id}>
-                  <td className="px-2 py-3 text-slate-900">
-                    {invoice.blockName}-{invoice.flatNumber}
-                  </td>
-                  <td className="px-2 py-3 text-slate-700">
-                    {invoice.residentName}
-                  </td>
-                  <td className="px-2 py-3 text-slate-700">
-                    {formatBillingPeriod(invoice.billingPeriod)}
-                  </td>
-                  <td className="px-2 py-3 text-slate-700">
-                    {formatDisplayDate(invoice.dueDate)}
-                  </td>
-                  <td className="px-2 py-3 font-medium text-slate-900">
-                    {formatPaiseAsRupees(invoice.amountPaise)}
-                  </td>
-                  <td className="px-2 py-3">
-                    <Badge variant={statusVariant(invoice.displayStatus)}>
-                      {invoice.displayStatus}
-                    </Badge>
-                  </td>
-                  <td className="px-2 py-3">
-                    <Button
-                      variant="secondary"
-                      className="px-3 py-1.5 text-xs"
-                      onClick={() => setMarkPaidId(invoice.id)}
-                      disabled={busy}
-                    >
-                      Mark paid
-                    </Button>
-                  </td>
-                </tr>
-              ))}
+              {(dues?.invoices ?? []).map((invoice) => {
+                const awaiting =
+                  invoice.displayStatus === "awaiting_verification";
+                return (
+                  <tr key={invoice.id}>
+                    <td className="px-2 py-3 text-slate-900">
+                      {invoice.blockName}-{invoice.flatNumber}
+                    </td>
+                    <td className="px-2 py-3 text-slate-700">
+                      {invoice.residentName}
+                    </td>
+                    <td className="px-2 py-3 text-slate-700">
+                      {formatBillingPeriod(invoice.billingPeriod)}
+                    </td>
+                    <td className="px-2 py-3 text-slate-700">
+                      {formatDisplayDate(invoice.dueDate)}
+                    </td>
+                    <td className="px-2 py-3 font-medium text-slate-900">
+                      {formatPaiseAsRupees(invoice.amountPaise)}
+                    </td>
+                    <td className="px-2 py-3 font-mono text-xs text-slate-700">
+                      {invoice.transactionRef ?? "—"}
+                    </td>
+                    <td className="px-2 py-3">
+                      <Badge variant={statusVariant(invoice.displayStatus)}>
+                        {statusLabel(invoice.displayStatus)}
+                      </Badge>
+                    </td>
+                    <td className="px-2 py-3">
+                      <div className="flex flex-wrap gap-2">
+                        {awaiting ? (
+                          <>
+                            <Button
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => handleVerify(invoice.id)}
+                              disabled={busy}
+                            >
+                              Verify
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              className="px-3 py-1.5 text-xs"
+                              onClick={() => {
+                                setRejectId(invoice.id);
+                                setMarkPaidId(null);
+                                setRejectNotes("");
+                              }}
+                              disabled={busy}
+                            >
+                              Reject
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            variant="secondary"
+                            className="px-3 py-1.5 text-xs"
+                            onClick={() => {
+                              setMarkPaidId(invoice.id);
+                              setRejectId(null);
+                            }}
+                            disabled={busy}
+                          >
+                            Mark paid
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {(dues?.invoices ?? []).length === 0 && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-2 py-6 text-center text-slate-500"
                   >
                     No pending invoices. Generate this month to create them.
