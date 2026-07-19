@@ -408,6 +408,7 @@ async function seedSociety(client, society, passwordHash) {
 
   await seedSampleInvoices(client, societyId, flat101, flat102);
   await seedSampleComplaints(client, societyId, flat101);
+  await seedSampleFinance(client, societyId);
 
   return societyId;
 }
@@ -629,6 +630,196 @@ async function seedSampleComplaints(client, societyId, flat101) {
   );
 
   console.log(`Seeded sample complaints for society ${societyId}.`);
+
+}
+
+
+
+async function seedSampleFinance(client, societyId) {
+
+  const treasurer = await client.query(
+
+    `SELECT id FROM users
+
+     WHERE society_id = $1 AND role = 'treasurer'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  const treasurerId = treasurer.rows[0]?.id;
+
+  if (!treasurerId) {
+
+    return;
+
+  }
+
+  const existingVendor = await client.query(
+
+    `SELECT id FROM vendors
+
+     WHERE society_id = $1 AND name = 'BrightLift Services'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  let vendorId = existingVendor.rows[0]?.id;
+
+  if (!vendorId) {
+
+    const vendor = await client.query(
+
+      `INSERT INTO vendors (
+
+         society_id, name, contact_name, phone, email, notes
+
+       )
+
+       VALUES (
+
+         $1, 'BrightLift Services', 'Suresh Kumar', '9876512345',
+
+         'suresh@brightlift.example', 'Lift AMC and repair vendor'
+
+       )
+
+       RETURNING id`,
+
+      [societyId],
+
+    );
+
+    vendorId = vendor.rows[0].id;
+
+  }
+
+  const existingQuotation = await client.query(
+
+    `SELECT id FROM quotations
+
+     WHERE society_id = $1 AND vendor_id = $2 AND title = 'Annual lift AMC'
+
+     LIMIT 1`,
+
+    [societyId, vendorId],
+
+  );
+
+  if (!existingQuotation.rows[0]) {
+
+    await client.query(
+
+      `INSERT INTO quotations (
+
+         society_id, vendor_id, title, description, amount_paise,
+
+         submitted_by_user_id, status
+
+       )
+
+       VALUES (
+
+         $1, $2, 'Annual lift AMC',
+
+         'Yearly comprehensive AMC covering both lifts.',
+
+         8500000, $3, 'pending'
+
+       )`,
+
+      [societyId, vendorId, treasurerId],
+
+    );
+
+  }
+
+  const existingExpense = await client.query(
+
+    `SELECT id FROM expenses
+
+     WHERE society_id = $1 AND title = 'Corridor lighting repairs'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  if (!existingExpense.rows[0]) {
+
+    await client.query(
+
+      `INSERT INTO expenses (
+
+         society_id, vendor_id, category, title, description,
+
+         amount_paise, expense_date, recorded_by_user_id
+
+       )
+
+       VALUES (
+
+         $1, $2, 'repairs', 'Corridor lighting repairs',
+
+         'Replaced faulty fixtures on Block A corridor.',
+
+         125000, CURRENT_DATE, $3
+
+       )`,
+
+      [societyId, vendorId, treasurerId],
+
+    );
+
+  }
+
+  const existingActivity = await client.query(
+
+    `SELECT id FROM maintenance_activities
+
+     WHERE society_id = $1 AND title = 'Quarterly lift inspection'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  if (!existingActivity.rows[0]) {
+
+    await client.query(
+
+      `INSERT INTO maintenance_activities (
+
+         society_id, vendor_id, category, title, description,
+
+         status, activity_date, logged_by_user_id
+
+       )
+
+       VALUES (
+
+         $1, $2, 'lift', 'Quarterly lift inspection',
+
+         'Scheduled inspection and lubrication for both lifts.',
+
+         'planned', CURRENT_DATE, $3
+
+       )`,
+
+      [societyId, vendorId, treasurerId],
+
+    );
+
+  }
+
+  console.log(`Seeded sample vendors/expenses/activities for society ${societyId}.`);
 
 }
 

@@ -12,6 +12,8 @@ AMS is a multi-tenant web application for apartment societies and housing associ
 - **Secure access** — Role-based authentication with RLS-enforced tenant isolation
 - **Complaints & maintenance** — Residents raise issues; managers/admins update status
 - **Payments & dues** — Maintenance billing with manual transaction-ID verification
+- **Expenses & vendors** — Treasurer expense entry, vendor directory, quotation approve/reject
+- **Maintenance activities** — Categorized society maintenance work logging for staff
 - **Notices** — Share announcements with residents (in development)
 
 ## Who uses it
@@ -126,6 +128,8 @@ The same email can exist in multiple societies — login always requires the soc
 | `npm run test:phase-1` | Run multi-tenant isolation tests |
 | `npm run test:phase-2` | Run master data & profile tests |
 | `npm run test:phase-3` | Run invoicing & dues tests |
+| `npm run test:phase-4` | Run complaints tests |
+| `npm run test:phase-5` | Run expenses, vendors & activities tests |
 
 ## License
 

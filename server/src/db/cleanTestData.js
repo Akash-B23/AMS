@@ -25,6 +25,26 @@ async function cleanTestData() {
       const slugs = societies.rows.map((r) => r.slug);
 
       await client.query(
+        "DELETE FROM expenses WHERE society_id = ANY($1::uuid[])",
+        [ids],
+      );
+      await client.query(
+        "DELETE FROM quotations WHERE society_id = ANY($1::uuid[])",
+        [ids],
+      );
+      await client.query(
+        "DELETE FROM maintenance_activities WHERE society_id = ANY($1::uuid[])",
+        [ids],
+      );
+      await client.query(
+        "DELETE FROM vendors WHERE society_id = ANY($1::uuid[])",
+        [ids],
+      );
+      await client.query(
+        "DELETE FROM complaints WHERE society_id = ANY($1::uuid[])",
+        [ids],
+      );
+      await client.query(
         "DELETE FROM reminder_logs WHERE society_id = ANY($1::uuid[])",
         [ids],
       );

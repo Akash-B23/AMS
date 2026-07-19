@@ -7,6 +7,14 @@ export function formatPaiseAsRupees(paise) {
   });
 }
 
+export function rupeesToPaise(rupees) {
+  const value = Number.parseFloat(rupees);
+  if (Number.isNaN(value) || value <= 0) {
+    return null;
+  }
+  return Math.round(value * 100);
+}
+
 export function formatBillingPeriod(isoDate) {
   if (!isoDate) return "—";
   const [year, month] = String(isoDate).slice(0, 10).split("-");

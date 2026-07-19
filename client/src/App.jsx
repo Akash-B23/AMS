@@ -20,6 +20,9 @@ import SetupWizardPage from "./pages/SetupWizardPage";
 import StaffDashboard from "./pages/StaffDashboard";
 import StaffComplaintsPage from "./pages/StaffComplaintsPage";
 import StaffDuesPage from "./pages/StaffDuesPage";
+import StaffExpensesPage from "./pages/StaffExpensesPage";
+import StaffMaintenanceActivitiesPage from "./pages/StaffMaintenanceActivitiesPage";
+import StaffVendorsPage from "./pages/StaffVendorsPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
 export default function App() {
@@ -68,6 +71,20 @@ export default function App() {
               }
             >
               <Route path="/:societySlug/staff/dues" element={<StaffDuesPage />} />
+              <Route path="/:societySlug/staff/expenses" element={<StaffExpensesPage />} />
+              <Route path="/:societySlug/staff/vendors" element={<StaffVendorsPage />} />
+            </Route>
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={["manager", "admin", "treasurer"]}
+                />
+              }
+            >
+              <Route
+                path="/:societySlug/staff/maintenance-activities"
+                element={<StaffMaintenanceActivitiesPage />}
+              />
             </Route>
           </Route>
 
