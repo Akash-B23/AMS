@@ -89,4 +89,44 @@ export async function updateDisplayName(client, userId, displayName) {
   return result.rows[0] ? mapUser(result.rows[0]) : null;
 }
 
+export async function listActiveUsersByRoles(client, societyId, roles) {
+  const result = await client.query(
+    `SELECT id, society_id, email, display_name, password_hash, role, resident_id,
+            is_active, created_at, updated_at
+     FROM users
+     WHERE society_id = $1
+       AND is_active = true
+       AND role = ANY($2::user_role[])
+     ORDER BY email ASC`,
+    [societyId, roles],
+  );
+  return result.rows.map(mapUser);
+}
+
+export async function findUserByResidentId(client, societyId, residentId) {
+  const result = await client.query(
+    `SELECT id, society_id, email, display_name, password_hash, role, resident_id,
+            is_active, created_at, updated_at
+     FROM users
+     WHERE society_id = $1 AND resident_id = $2 AND is_active = true
+     LIMIT 1`,
+    [societyId, residentId],
+  );
+  return result.rows[0] ? mapUser(result.rows[0]) : null;
+}
+
+export async function deactivateUserByResidentId(client, societyId, residentId) {
+  const result = await client.query(
+    `UPDATE users
+     SET is_active = false, updated_at = NOW()
+     WHERE society_id = $1
+       AND resident_id = $2
+       AND is_active = true
+     RETURNING id, society_id, email, display_name, password_hash, role, resident_id,
+               is_active, created_at, updated_at`,
+    [societyId, residentId],
+  );
+  return result.rows.map(mapUser);
+}
+
 export { toPublic };

@@ -4,9 +4,12 @@ import { createPool } from "./pool.js";
 async function reset() {
   const pool = createPool();
   try {
+    await pool.query("DROP TABLE IF EXISTS email_deliveries CASCADE");
+    await pool.query("DROP TABLE IF EXISTS notifications CASCADE");
     await pool.query("DROP TABLE IF EXISTS expenses CASCADE");
     await pool.query("DROP TABLE IF EXISTS quotations CASCADE");
     await pool.query("DROP TABLE IF EXISTS maintenance_activities CASCADE");
+    await pool.query("DROP TABLE IF EXISTS maintenance_schedules CASCADE");
     await pool.query("DROP TABLE IF EXISTS vendors CASCADE");
     await pool.query("DROP TABLE IF EXISTS complaints CASCADE");
     await pool.query("DROP TABLE IF EXISTS audit_logs CASCADE");
@@ -21,6 +24,8 @@ async function reset() {
     await pool.query("DROP TABLE IF EXISTS blocks CASCADE");
     await pool.query("DROP TABLE IF EXISTS societies CASCADE");
     await pool.query("DROP TABLE IF EXISTS schema_migrations CASCADE");
+    await pool.query("DROP TYPE IF EXISTS email_delivery_status");
+    await pool.query("DROP TYPE IF EXISTS maintenance_schedule_frequency");
     await pool.query("DROP TYPE IF EXISTS maintenance_activity_status");
     await pool.query("DROP TYPE IF EXISTS expense_category");
     await pool.query("DROP TYPE IF EXISTS quotation_status");

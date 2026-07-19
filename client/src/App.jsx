@@ -10,11 +10,13 @@ import { AuthProvider } from "./context/AuthContext";
 import LoginPage from "./pages/LoginPage";
 import LandingPage from "./pages/LandingPage";
 import MasterDataPage from "./pages/MasterDataPage";
+import NotificationsPage from "./pages/NotificationsPage";
 import PlatformDashboard from "./pages/PlatformDashboard";
 import PlatformLoginPage from "./pages/PlatformLoginPage";
 import ResidentDashboard from "./pages/ResidentDashboard";
 import ResidentComplaintsPage from "./pages/ResidentComplaintsPage";
 import ResidentProfilePage from "./pages/ResidentProfilePage";
+import ResidentReportsPage from "./pages/ResidentReportsPage";
 import SignupPage from "./pages/SignupPage";
 import SetupWizardPage from "./pages/SetupWizardPage";
 import StaffDashboard from "./pages/StaffDashboard";
@@ -22,6 +24,10 @@ import StaffComplaintsPage from "./pages/StaffComplaintsPage";
 import StaffDuesPage from "./pages/StaffDuesPage";
 import StaffExpensesPage from "./pages/StaffExpensesPage";
 import StaffMaintenanceActivitiesPage from "./pages/StaffMaintenanceActivitiesPage";
+import StaffMaintenanceSchedulesPage from "./pages/StaffMaintenanceSchedulesPage";
+import StaffReportsPage from "./pages/StaffReportsPage";
+import StaffResidentsPage from "./pages/StaffResidentsPage";
+import StaffShareableReportsPage from "./pages/StaffShareableReportsPage";
 import StaffVendorsPage from "./pages/StaffVendorsPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 
@@ -49,6 +55,8 @@ export default function App() {
             <Route path="/:societySlug/resident" element={<ResidentDashboard />} />
             <Route path="/:societySlug/resident/profile" element={<ResidentProfilePage />} />
             <Route path="/:societySlug/resident/complaints" element={<ResidentComplaintsPage />} />
+            <Route path="/:societySlug/resident/reports" element={<ResidentReportsPage />} />
+            <Route path="/:societySlug/resident/notifications" element={<NotificationsPage />} />
           </Route>
 
           <Route element={<SetupRoute />}>
@@ -57,6 +65,31 @@ export default function App() {
 
           <Route element={<StaffRoute />}>
             <Route path="/:societySlug/staff" element={<StaffDashboard />} />
+            <Route path="/:societySlug/staff/notifications" element={<NotificationsPage />} />
+            <Route
+              element={
+                <ProtectedRoute
+                  allowedRoles={[
+                    "manager",
+                    "admin",
+                    "treasurer",
+                    "association_staff",
+                  ]}
+                />
+              }
+            >
+              <Route path="/:societySlug/staff/reports" element={<StaffReportsPage />} />
+            </Route>
+            <Route
+              element={
+                <ProtectedRoute allowedRoles={["admin", "treasurer"]} />
+              }
+            >
+              <Route
+                path="/:societySlug/staff/shareable-reports"
+                element={<StaffShareableReportsPage />}
+              />
+            </Route>
             <Route path="/:societySlug/staff/master-data" element={<MasterDataPage />} />
             <Route
               element={
@@ -64,6 +97,7 @@ export default function App() {
               }
             >
               <Route path="/:societySlug/staff/complaints" element={<StaffComplaintsPage />} />
+              <Route path="/:societySlug/staff/residents" element={<StaffResidentsPage />} />
             </Route>
             <Route
               element={
@@ -84,6 +118,10 @@ export default function App() {
               <Route
                 path="/:societySlug/staff/maintenance-activities"
                 element={<StaffMaintenanceActivitiesPage />}
+              />
+              <Route
+                path="/:societySlug/staff/maintenance-schedules"
+                element={<StaffMaintenanceSchedulesPage />}
               />
             </Route>
           </Route>

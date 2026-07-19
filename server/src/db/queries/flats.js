@@ -58,6 +58,20 @@ export async function findFlatByBlockAndNumber(client, blockId, flatNumber) {
   return result.rows[0] ? mapFlat(result.rows[0]) : null;
 }
 
+export async function findFlatById(client, societyId, flatId) {
+  const result = await client.query(
+    `SELECT f.id, f.society_id, f.block_id, b.name AS block_name,
+            f.flat_number, f.floor, f.maintenance_amount_paise,
+            f.is_active, f.created_at, f.updated_at
+     FROM flats f
+     JOIN blocks b ON b.id = f.block_id
+     WHERE f.society_id = $1 AND f.id = $2
+     LIMIT 1`,
+    [societyId, flatId],
+  );
+  return result.rows[0] ? mapFlat(result.rows[0]) : null;
+}
+
 export async function createFlat(
   client,
   { societyId, blockId, flatNumber, floor = null },

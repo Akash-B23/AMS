@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  maintenanceSchedulesJobHandler,
   monthlyInvoicesJobHandler,
   remindersJobHandler,
 } from "../controllers/jobsController.js";
@@ -9,6 +10,12 @@ import { requireCronSecret } from "../middleware/cronAuth.js";
 const router = Router();
 
 router.post("/monthly-invoices", requireCronSecret, monthlyInvoicesJobHandler);
+
+router.post(
+  "/maintenance-schedules",
+  requireCronSecret,
+  maintenanceSchedulesJobHandler,
+);
 
 router.post("/reminders", (req, res, next) => {
   const secret = process.env.CRON_SECRET;

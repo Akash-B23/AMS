@@ -3,11 +3,12 @@ function mapActivity(row) {
     id: row.id,
     societyId: row.society_id,
     vendorId: row.vendor_id ?? null,
+    scheduleId: row.schedule_id ?? null,
     category: row.category,
     title: row.title,
     description: row.description ?? null,
     status: row.status,
-    activityDate: row.activity_date,
+    activityDate: String(row.activity_date).slice(0, 10),
     loggedByUserId: row.logged_by_user_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -16,9 +17,9 @@ function mapActivity(row) {
 }
 
 const ACTIVITY_SELECT = `
-  SELECT a.id, a.society_id, a.vendor_id, a.category, a.title, a.description,
-         a.status, a.activity_date, a.logged_by_user_id, a.created_at, a.updated_at,
-         v.name AS vendor_name
+  SELECT a.id, a.society_id, a.vendor_id, a.schedule_id, a.category, a.title,
+         a.description, a.status, a.activity_date::text AS activity_date,
+         a.logged_by_user_id, a.created_at, a.updated_at, v.name AS vendor_name
   FROM maintenance_activities a
   LEFT JOIN vendors v ON v.id = a.vendor_id
 `;
@@ -28,6 +29,7 @@ export async function createMaintenanceActivity(
   {
     societyId,
     vendorId,
+    scheduleId,
     category,
     title,
     description,
@@ -38,14 +40,15 @@ export async function createMaintenanceActivity(
 ) {
   const result = await client.query(
     `INSERT INTO maintenance_activities (
-       society_id, vendor_id, category, title, description, status,
+       society_id, vendor_id, schedule_id, category, title, description, status,
        activity_date, logged_by_user_id
      )
-     VALUES ($1, $2, $3, $4, $5, $6, $7::date, $8)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8::date, $9)
      RETURNING id`,
     [
       societyId,
       vendorId ?? null,
+      scheduleId ?? null,
       category,
       title,
       description ?? null,
@@ -63,6 +66,21 @@ export async function findMaintenanceActivityById(client, activityId) {
      WHERE a.id = $1
      LIMIT 1`,
     [activityId],
+  );
+  return result.rows[0] ? mapActivity(result.rows[0]) : null;
+}
+
+export async function findActivityByScheduleAndDate(
+  client,
+  { societyId, scheduleId, activityDate },
+) {
+  const result = await client.query(
+    `${ACTIVITY_SELECT}
+     WHERE a.society_id = $1
+       AND a.schedule_id = $2
+       AND a.activity_date = $3::date
+     LIMIT 1`,
+    [societyId, scheduleId, activityDate],
   );
   return result.rows[0] ? mapActivity(result.rows[0]) : null;
 }
@@ -91,6 +109,23 @@ export async function listMaintenanceActivities(
      WHERE ${conditions.join(" AND ")}
      ORDER BY a.activity_date DESC, a.created_at DESC`,
     params,
+  );
+  return result.rows.map(mapActivity);
+}
+
+export async function listUpcomingPlannedActivities(
+  client,
+  societyId,
+  { fromDate, toDate },
+) {
+  const result = await client.query(
+    `${ACTIVITY_SELECT}
+     WHERE a.society_id = $1
+       AND a.status = 'planned'
+       AND a.activity_date >= $2::date
+       AND a.activity_date <= $3::date
+     ORDER BY a.activity_date ASC`,
+    [societyId, fromDate, toDate],
   );
   return result.rows.map(mapActivity);
 }

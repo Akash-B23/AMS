@@ -81,7 +81,7 @@ export default function StaffDuesPage() {
     try {
       const result = await invoicesApi.runReminders();
       setSuccess(
-        `Reminders recorded: ${result.recorded} (skipped ${result.skipped}). No email was sent — stubs only.`,
+        `Reminders: ${result.recorded} recorded, ${result.skipped} skipped, ${result.emailed ?? 0} emailed, ${result.emailFailed ?? 0} email failed.`,
       );
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Reminders failed");

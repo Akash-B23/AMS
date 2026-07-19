@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import Button from "../ui/Button";
+import NotificationBell from "./NotificationBell";
 
 export default function DashboardLayout({
   title,
@@ -9,6 +10,8 @@ export default function DashboardLayout({
   onLogout,
   children,
   wide = false,
+  societySlug = null,
+  notificationBasePath = null,
 }) {
   return (
     <div className={`mx-auto px-4 py-6 sm:px-6 sm:py-8 ${wide ? "max-w-5xl" : "max-w-2xl"}`}>
@@ -23,6 +26,12 @@ export default function DashboardLayout({
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {societySlug && notificationBasePath && (
+            <NotificationBell
+              societySlug={societySlug}
+              basePath={notificationBasePath}
+            />
+          )}
           {backTo && (
             <Link
               to={backTo}

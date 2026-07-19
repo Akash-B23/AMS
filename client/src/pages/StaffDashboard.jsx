@@ -10,10 +10,17 @@ export default function StaffDashboard() {
     user?.role === "manager" || user?.role === "admin";
   const canManageFinance =
     user?.role === "admin" || user?.role === "treasurer";
+  const canManageResidents =
+    user?.role === "manager" || user?.role === "admin";
   const canLogMaintenance =
     user?.role === "manager" ||
     user?.role === "admin" ||
     user?.role === "treasurer";
+  const canViewReports =
+    user?.role === "manager" ||
+    user?.role === "admin" ||
+    user?.role === "treasurer" ||
+    user?.role === "association_staff";
 
   return (
     <DashboardLayout
@@ -24,6 +31,8 @@ export default function StaffDashboard() {
           : `${user?.email} (${user?.role})`
       }
       onLogout={logout}
+      societySlug={societySlug}
+      notificationBasePath="staff"
       wide
     >
       <div className="grid gap-4 sm:grid-cols-2">
@@ -31,9 +40,61 @@ export default function StaffDashboard() {
           <h2 className="text-base font-semibold text-slate-900">Overview</h2>
           <p className="mt-2 text-sm leading-relaxed text-slate-600">
             Staff dashboard for {user?.role}. Use the cards below for dues,
-            expenses, vendors, complaints, and maintenance activity logging.
+            expenses, vendors, complaints, reports, and maintenance.
           </p>
         </Card>
+
+        {canManageResidents && (
+          <Card>
+            <h2 className="text-base font-semibold text-slate-900">
+              Residents
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Move residents in and out, create logins, and keep occupancy up to
+              date.
+            </p>
+            <Link
+              to={`/${societySlug}/staff/residents`}
+              className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
+            >
+              Open residents
+            </Link>
+          </Card>
+        )}
+
+        {canViewReports && (
+          <Card>
+            <h2 className="text-base font-semibold text-slate-900">Reports</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              On-demand collection, expense, complaints, and maintenance
+              summaries with CSV download.
+            </p>
+            <Link
+              to={`/${societySlug}/staff/reports`}
+              className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
+            >
+              Open reports
+            </Link>
+          </Card>
+        )}
+
+        {canManageFinance && (
+          <Card>
+            <h2 className="text-base font-semibold text-slate-900">
+              Shareable summaries
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Formatted pending-dues and income/expense views to copy or
+              download as an image for your group chat.
+            </p>
+            <Link
+              to={`/${societySlug}/staff/shareable-reports`}
+              className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
+            >
+              Open shareable reports
+            </Link>
+          </Card>
+        )}
 
         {canManageMasterData && (
           <Card>
@@ -59,7 +120,7 @@ export default function StaffDashboard() {
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               Generate monthly invoices, view outstanding dues, verify resident
-              transaction IDs, mark offline payments, and run reminder stubs.
+              transaction IDs, mark offline payments, and run reminder emails.
             </p>
             <Link
               to={`/${societySlug}/staff/dues`}
@@ -116,6 +177,24 @@ export default function StaffDashboard() {
               className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
             >
               Open activities
+            </Link>
+          </Card>
+        )}
+
+        {canLogMaintenance && (
+          <Card>
+            <h2 className="text-base font-semibold text-slate-900">
+              Maintenance schedules
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Create recurring preventive maintenance plans that generate
+              activities and notify staff.
+            </p>
+            <Link
+              to={`/${societySlug}/staff/maintenance-schedules`}
+              className="mt-4 inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
+            >
+              Open schedules
             </Link>
           </Card>
         )}

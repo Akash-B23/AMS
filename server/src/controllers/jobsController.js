@@ -3,6 +3,7 @@ import {
   runRemindersForAllSocieties,
   runRemindersForSociety,
 } from "../services/invoiceService.js";
+import { generateDueMaintenanceSchedules } from "../services/maintenanceScheduleService.js";
 
 export async function monthlyInvoicesJobHandler(_req, res) {
   const result = await generateInvoicesForAllSocieties();
@@ -20,5 +21,10 @@ export async function remindersJobHandler(req, res) {
   }
 
   const result = await runRemindersForAllSocieties();
+  res.json(result);
+}
+
+export async function maintenanceSchedulesJobHandler(_req, res) {
+  const result = await generateDueMaintenanceSchedules();
   res.json(result);
 }

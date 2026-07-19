@@ -1,8 +1,9 @@
 export class ApiError extends Error {
-  constructor(status, message) {
+  constructor(status, message, body = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.body = body;
   }
 }
 
@@ -23,7 +24,7 @@ export async function apiFetch(path, options = {}) {
       typeof data === "object" && data !== null && "error" in data
         ? String(data.error)
         : res.statusText;
-    throw new ApiError(res.status, message);
+    throw new ApiError(res.status, message, data);
   }
 
   return data;

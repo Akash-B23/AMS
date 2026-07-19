@@ -819,6 +819,104 @@ async function seedSampleFinance(client, societyId) {
 
   }
 
+  const existingSchedule = await client.query(
+
+    `SELECT id FROM maintenance_schedules
+
+     WHERE society_id = $1 AND title = 'Monthly generator check'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  if (!existingSchedule.rows[0]) {
+
+    await client.query(
+
+      `INSERT INTO maintenance_schedules (
+
+         society_id, title, description, category, vendor_id, frequency,
+
+         day_of_month, notify_days_before, next_due_date, created_by_user_id
+
+       )
+
+       VALUES (
+
+         $1, 'Monthly generator check',
+
+         'Inspect backup generator oil, battery, and test run.',
+
+         'electrical', $2, 'monthly', 15, 3,
+
+         (DATE_TRUNC('month', CURRENT_DATE) + INTERVAL '14 days')::date,
+
+         $3
+
+       )`,
+
+      [societyId, vendorId, treasurerId],
+
+    );
+
+  }
+
+  const manager = await client.query(
+
+    `SELECT id FROM users
+
+     WHERE society_id = $1 AND role = 'manager'
+
+     LIMIT 1`,
+
+    [societyId],
+
+  );
+
+  const managerId = manager.rows[0]?.id;
+
+  if (managerId) {
+
+    const existingNotification = await client.query(
+
+      `SELECT id FROM notifications
+
+       WHERE society_id = $1 AND user_id = $2 AND type = 'maintenance_due'
+
+         AND title = 'Welcome to notifications'
+
+       LIMIT 1`,
+
+      [societyId, managerId],
+
+    );
+
+    if (!existingNotification.rows[0]) {
+
+      await client.query(
+
+        `INSERT INTO notifications (society_id, user_id, type, title, body, meta)
+
+         VALUES (
+
+           $1, $2, 'maintenance_due', 'Welcome to notifications',
+
+           'You will receive maintenance schedule alerts here.',
+
+           '{}'::jsonb
+
+         )`,
+
+        [societyId, managerId],
+
+      );
+
+    }
+
+  }
+
   console.log(`Seeded sample vendors/expenses/activities for society ${societyId}.`);
 
 }

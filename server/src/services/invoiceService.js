@@ -17,11 +17,16 @@ import {
   findSocietyById,
   listActiveSocieties,
 } from "../db/queries/societies.js";
-import { findUserById } from "../db/queries/users.js";
+import { findUserById, findUserByResidentId } from "../db/queries/users.js";
 import {
   createReminderLog,
   countRemindersForInvoiceToday,
 } from "../db/queries/reminderLogs.js";
+import { createNotification } from "../db/queries/notifications.js";
+import {
+  buildInvoiceReminderEmail,
+  sendEmail,
+} from "./mailerService.js";
 
 const generateSchema = z.object({
   year: z.number().int().min(2000).max(2100).optional(),
@@ -477,6 +482,8 @@ export async function runRemindersForSociety(societyId, actorUserId = null) {
     const invoices = await listPendingInvoicesForReminders(tx, societyId);
     let recorded = 0;
     let skipped = 0;
+    let emailed = 0;
+    let emailFailed = 0;
 
     for (const invoice of invoices) {
       const alreadyToday = await countRemindersForInvoiceToday(tx, invoice.id);
@@ -487,10 +494,16 @@ export async function runRemindersForSociety(societyId, actorUserId = null) {
 
       const to = invoice.residentEmail;
       const amount = formatRupees(invoice.amountPaise);
-      const subject = `Maintenance reminder — ${society?.name ?? "Society"}`;
-      const body = to
-        ? `Dear ${invoice.residentName}, your maintenance of ₹${amount} for ${invoice.billingPeriod} (flat ${invoice.blockName}-${invoice.flatNumber}) is due on ${invoice.dueDate}.`
-        : null;
+      const flatLabel = `${invoice.blockName}-${invoice.flatNumber}`;
+      const societyName = society?.name ?? "Society";
+      const emailContent = buildInvoiceReminderEmail({
+        societyName,
+        residentName: invoice.residentName,
+        amount,
+        billingPeriod: invoice.billingPeriod,
+        flatLabel,
+        dueDate: invoice.dueDate,
+      });
 
       if (!to) {
         await createReminderLog(tx, {
@@ -500,7 +513,7 @@ export async function runRemindersForSociety(societyId, actorUserId = null) {
           status: "skipped",
           payload: {
             reason: "no_email",
-            subject,
+            subject: emailContent.subject,
             amountPaise: invoice.amountPaise,
           },
         });
@@ -515,13 +528,54 @@ export async function runRemindersForSociety(societyId, actorUserId = null) {
         status: "recorded",
         payload: {
           to,
-          subject,
-          body,
+          subject: emailContent.subject,
+          body: emailContent.text,
           amountPaise: invoice.amountPaise,
           dueDate: invoice.dueDate,
           billingPeriod: invoice.billingPeriod,
         },
       });
+
+      const residentUser = await findUserByResidentId(
+        tx,
+        societyId,
+        invoice.billedResidentId,
+      );
+
+      if (residentUser) {
+        await createNotification(tx, {
+          societyId,
+          userId: residentUser.id,
+          type: "invoice_reminder",
+          title: emailContent.subject,
+          body: emailContent.text,
+          meta: {
+            invoiceId: invoice.id,
+            amountPaise: invoice.amountPaise,
+            dueDate: invoice.dueDate,
+          },
+        });
+      }
+
+      const delivery = await sendEmail(tx, {
+        societyId,
+        userId: residentUser?.id ?? null,
+        to,
+        subject: emailContent.subject,
+        text: emailContent.text,
+        html: emailContent.html,
+        template: "invoice_reminder",
+        payload: {
+          invoiceId: invoice.id,
+          amountPaise: invoice.amountPaise,
+        },
+      });
+      if (delivery.status === "sent" || delivery.status === "skipped") {
+        emailed += 1;
+      } else if (delivery.status === "failed") {
+        emailFailed += 1;
+      }
+
       recorded += 1;
     }
 
@@ -531,11 +585,17 @@ export async function runRemindersForSociety(societyId, actorUserId = null) {
         actorUserId,
         action: "reminders.run",
         entityType: "reminder_logs",
-        meta: { recorded, skipped },
+        meta: { recorded, skipped, emailed, emailFailed },
       });
     }
 
-    return { recorded, skipped, pendingCount: invoices.length };
+    return {
+      recorded,
+      skipped,
+      emailed,
+      emailFailed,
+      pendingCount: invoices.length,
+    };
   });
 }
 

@@ -14,7 +14,11 @@ AMS is a multi-tenant web application for apartment societies and housing associ
 - **Payments & dues** — Maintenance billing with manual transaction-ID verification
 - **Expenses & vendors** — Treasurer expense entry, vendor directory, quotation approve/reject
 - **Maintenance activities** — Categorized society maintenance work logging for staff
-- **Notices** — Share announcements with residents (in development)
+- **Recurring maintenance** — Schedules that generate planned activities and notify staff
+- **Reports** — Resident summary reports and staff collection/expense/complaints/maintenance reports with CSV download
+- **Shareable summaries** — Formatted pending-dues and income/expense views with copy-to-clipboard and download-as-image (no WhatsApp integration)
+- **Move-in / move-out** — Staff create resident logins on move-in; soft-deactivate on move-out with a pending-dues warning
+- **Notifications** — In-app alerts plus Resend email for invoice reminders and maintenance due
 
 ## Who uses it
 
@@ -70,15 +74,20 @@ cp server/.env.example server/.env
 | `PORT` | API port (default `3000`) |
 | `CLIENT_ORIGIN` | Frontend URL (default `http://localhost:5173`) |
 | `CRON_SECRET` | Bearer token for `/api/jobs/*` cron endpoints |
+| `RESEND_API_KEY` | Optional Resend API key for email delivery |
+| `EMAIL_FROM` | From address for Resend (e.g. `AMS <noreply@yourdomain.com>`) |
 
 Residents submit a bank/UPI transaction ID for each invoice; staff verify or reject before the invoice is marked paid.
 
-Monthly invoice generation (1st of month) and reminder stubs can be triggered by an external cron:
+Monthly invoice generation (1st of month), reminder emails, and due maintenance schedules can be triggered by an external cron:
 
 ```bash
 curl -X POST "$API_URL/api/jobs/monthly-invoices" -H "Authorization: Bearer $CRON_SECRET"
 curl -X POST "$API_URL/api/jobs/reminders" -H "Authorization: Bearer $CRON_SECRET"
+curl -X POST "$API_URL/api/jobs/maintenance-schedules" -H "Authorization: Bearer $CRON_SECRET"
 ```
+
+When `RESEND_API_KEY` is unset, emails are recorded as skipped in `email_deliveries` (safe for local/dev).
 
 Generate a JWT secret:
 
@@ -130,6 +139,8 @@ The same email can exist in multiple societies — login always requires the soc
 | `npm run test:phase-3` | Run invoicing & dues tests |
 | `npm run test:phase-4` | Run complaints tests |
 | `npm run test:phase-5` | Run expenses, vendors & activities tests |
+| `npm run test:phase-6` | Run reporting, schedules & notifications tests |
+| `npm run test:phase-7` | Run move-in/move-out & shareable reports tests |
 
 ## License
 

@@ -111,10 +111,21 @@ export default function ResidentDashboard() {
           : user?.email
       }
       onLogout={logout}
+      societySlug={societySlug}
+      notificationBasePath="resident"
     >
       <div className="space-y-4">
         {error && <Alert variant="error">{error}</Alert>}
         {info && <Alert variant="success">{info}</Alert>}
+
+        <div className="flex flex-wrap gap-2">
+          <Link
+            to={`/${societySlug}/resident/reports`}
+            className="inline-flex rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white no-underline transition hover:bg-brand-800"
+          >
+            My reports
+          </Link>
+        </div>
 
         <Card className="space-y-2">
           <p className="text-sm font-medium text-slate-600">Amount due</p>
