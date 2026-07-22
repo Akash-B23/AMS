@@ -18,7 +18,7 @@ AMS is a multi-tenant web application for apartment societies and housing associ
 - **Reports** — Resident summary reports and staff collection/expense/complaints/maintenance reports with CSV download
 - **Shareable summaries** — Formatted pending-dues and income/expense views with copy-to-clipboard and download-as-image (no WhatsApp integration)
 - **Move-in / move-out** — Staff create resident logins on move-in; soft-deactivate on move-out with a pending-dues warning
-- **Notifications** — In-app alerts plus Resend email for invoice reminders and maintenance due
+- **Notifications** — In-app alerts plus optional SMTP or Resend email for invoice reminders and maintenance due
 
 ## Who uses it
 
@@ -74,8 +74,13 @@ cp server/.env.example server/.env
 | `PORT` | API port (default `3000`) |
 | `CLIENT_ORIGIN` | Frontend URL (default `http://localhost:5173`) |
 | `CRON_SECRET` | Bearer token for `/api/jobs/*` cron endpoints |
-| `RESEND_API_KEY` | Optional Resend API key for email delivery |
-| `EMAIL_FROM` | From address for Resend (e.g. `AMS <noreply@yourdomain.com>`) |
+| `EMAIL_FROM` | From address for outbound mail (e.g. `AMS <noreply@yourdomain.com>`) |
+| `SMTP_HOST` | Optional SMTP host (Nodemailer). If set, SMTP is used instead of Resend |
+| `SMTP_PORT` | SMTP port (default `587`) |
+| `SMTP_SECURE` | `true` for TLS on connect (port 465); default `false` for STARTTLS |
+| `SMTP_USER` | SMTP username |
+| `SMTP_PASS` | SMTP password / app password |
+| `RESEND_API_KEY` | Optional Resend API key (used only when `SMTP_HOST` is unset) |
 
 Residents submit a bank/UPI transaction ID for each invoice; staff verify or reject before the invoice is marked paid.
 
@@ -87,7 +92,7 @@ curl -X POST "$API_URL/api/jobs/reminders" -H "Authorization: Bearer $CRON_SECRE
 curl -X POST "$API_URL/api/jobs/maintenance-schedules" -H "Authorization: Bearer $CRON_SECRET"
 ```
 
-When `RESEND_API_KEY` is unset, emails are recorded as skipped in `email_deliveries` (safe for local/dev).
+When neither `SMTP_HOST` nor `RESEND_API_KEY` is set, emails are recorded as skipped in `email_deliveries` (safe for local/dev). If `SMTP_HOST` is set, Nodemailer/SMTP is used; otherwise Resend is used when its API key is present.
 
 Generate a JWT secret:
 

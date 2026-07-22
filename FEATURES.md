@@ -139,8 +139,8 @@ All product features shipped through Phase 7, organized by phase.
 ### Notifications & email
 
 - In-app notifications (list, mark read, mark all read) for residents and staff
-- Optional Resend email for invoice reminders and maintenance due
-- Without `RESEND_API_KEY`, emails are recorded as skipped (safe for local/dev)
+- Optional email for invoice reminders and maintenance due via SMTP (Nodemailer) or Resend
+- Without SMTP or Resend configured, emails are recorded as skipped (safe for local/dev)
 
 ---
 

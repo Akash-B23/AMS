@@ -2,7 +2,7 @@
  * Phase 6 — Reporting, recurring maintenance, notifications
  *
  * Verifies: role gates on reports, resident summary, schedule create/generate
- * idempotency, notifications for staff, mailer skip without RESEND_API_KEY,
+ * idempotency, notifications for staff, mailer skip without SMTP/Resend,
  * association_staff access to ops reports only.
  *
  * Prerequisites:
@@ -36,6 +36,9 @@ describe("Phase 6 — Reporting, schedules, notifications", () => {
     }
     process.env.CRON_SECRET = process.env.CRON_SECRET || "test-cron-secret";
     delete process.env.RESEND_API_KEY;
+    delete process.env.SMTP_HOST;
+    delete process.env.SMTP_USER;
+    delete process.env.SMTP_PASS;
     app = createApp();
   });
 
@@ -166,7 +169,7 @@ describe("Phase 6 — Reporting, schedules, notifications", () => {
     assert.ok(updated.readAt);
   });
 
-  test("invoice reminders record email_deliveries as skipped without API key", async () => {
+  test("invoice reminders record email_deliveries as skipped without SMTP/Resend", async () => {
     const agent = request.agent(app);
     await agent.post("/api/auth/login").send({
       societySlug: GREENVIEW,

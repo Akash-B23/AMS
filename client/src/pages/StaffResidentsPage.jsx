@@ -142,38 +142,6 @@ export default function StaffResidentsPage() {
         {error && <Alert variant="error">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        {pendingMoveOut && (
-          <Card>
-            <h2 className="text-base font-semibold text-slate-900">
-              Confirm move-out
-            </h2>
-            <p className="mt-2 text-sm text-slate-600">
-              {pendingMoveOut.resident.name}&apos;s flat has{" "}
-              <strong>{pendingMoveOut.pendingInvoiceCount}</strong> pending
-              invoice(s) totaling{" "}
-              <strong>
-                {formatPaiseAsRupees(pendingMoveOut.pendingAmountPaise)}
-              </strong>
-              . Move-out is allowed; invoices stay on the flat.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                disabled={busy}
-                onClick={() => handleMoveOut(pendingMoveOut.resident, true)}
-              >
-                Move out anyway
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() => setPendingMoveOut(null)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        )}
-
         {canWrite && (
           <Card>
             <h2 className="text-base font-semibold text-slate-900">Move in</h2>
@@ -301,13 +269,46 @@ export default function StaffResidentsPage() {
                     </p>
                   </div>
                   {canWrite && r.isActive && (
-                    <Button
-                      variant="secondary"
-                      disabled={busy}
-                      onClick={() => handleMoveOut(r, false)}
-                    >
-                      Move out
-                    </Button>
+                    <div className="flex max-w-md flex-col items-stretch gap-2 sm:items-end">
+                      {pendingMoveOut?.resident.id === r.id ? (
+                        <>
+                          <Alert variant="warning" className="text-left sm:text-right">
+                            Flat has{" "}
+                            <strong>{pendingMoveOut.pendingInvoiceCount}</strong>{" "}
+                            pending invoice(s) totaling{" "}
+                            <strong>
+                              {formatPaiseAsRupees(
+                                pendingMoveOut.pendingAmountPaise,
+                              )}
+                            </strong>
+                            . Invoices stay on the flat.
+                          </Alert>
+                          <div className="flex flex-wrap gap-2 sm:justify-end">
+                            <Button
+                              disabled={busy}
+                              onClick={() => handleMoveOut(r, true)}
+                            >
+                              Move out anyway
+                            </Button>
+                            <Button
+                              variant="secondary"
+                              disabled={busy}
+                              onClick={() => setPendingMoveOut(null)}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          disabled={busy}
+                          onClick={() => handleMoveOut(r, false)}
+                        >
+                          Move out
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </li>
               ))}
